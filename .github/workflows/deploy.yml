@@ -20,7 +20,7 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }} # Đảm bảo thêm SSH private key vào GitHub Secrets
 
-      # Deploy lên VPS
+      # Deploy lên VPS2
       - name: Deploy to VPS
         run: |
           echo "Deploying to VPS..."
