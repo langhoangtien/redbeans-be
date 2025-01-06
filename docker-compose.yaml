@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   mongo:
     image: mongo:8.0.4
@@ -8,16 +10,23 @@ services:
     volumes:
       - mongo-data:/data/db
     ports:
-      - ${DATABASE_PORT}:27017
+      - "${DATABASE_PORT}:27017"
 
   api:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - ${APP_PORT}:${APP_PORT}
+      - "${APP_PORT}:${APP_PORT}"
     depends_on:
       - mongo
+    environment:
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_PORT: ${DATABASE_PORT}
+      MONGO_URI: mongodb://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@mongo:27017/mydatabase
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
 
 volumes:
   mongo-data:
