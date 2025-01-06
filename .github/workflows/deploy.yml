@@ -20,10 +20,10 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }} # Đảm bảo thêm SSH private key vào GitHub Secrets
 
-      # Deploy lên VPS2
+      # Deploy lên VPS
       - name: Deploy to VPS
         run: |
           echo "Deploying to VPS..."
-          ssh -o StrictHostKeyChecking=no root@$VPS_IP "cd /home/redbeans-be && git pull && docker-compose down && docker-compose up --build -d"
+          ssh -o StrictHostKeyChecking=no root@$VPS_IP "cd /home/redbeans-be && git pull && docker-compose down && docker-compose up --build -d && docker-compose logs -f"
         env:
           VPS_IP: ${{ secrets.VPS_IP }} # Địa chỉ IP của VPS từ GitHub Secrets
