@@ -1,6 +1,5 @@
 import mongoose, { mongo } from "mongoose";
 import { Request, Response } from "express";
-type Select = string;
 
 const baseController = (model: any, select: string = "") => {
   const create = async (req: Request, res: Response) => {

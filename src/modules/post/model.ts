@@ -4,7 +4,7 @@ interface IPost extends Document {
   title: string;
   content: string;
   slug: string;
-  categories: string[]; // Danh sách ID của các Category
+  collections: string[]; // Danh sách ID của các Category
 }
 
 const postSchema = new Schema<IPost>(
@@ -27,13 +27,15 @@ const postSchema = new Schema<IPost>(
       maxLength: 100,
       index: true, // Thêm index cho slug
     },
-    categories: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Category",
-        required: false,
+    collections: {
+      type: [String],
+      validate: {
+        validator: function (v: string[]) {
+          return v.every((str) => str.length >= 2 && str.length <= 100);
+        },
+        message: (props) => `${props.value} is not a valid collection ID!`,
       },
-    ],
+    },
   },
   { timestamps: true, versionKey: false }
 );

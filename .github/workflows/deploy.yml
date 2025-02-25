@@ -3,7 +3,7 @@ name: Deploy to VPS
 on:
   push:
     branches:
-      - main # Chạy khi có thay đổi trên nhánh chính (main)
+      - redbean # Chạy khi có thay đổi trên nhánh chính (main)
 
 jobs:
   deploy:
