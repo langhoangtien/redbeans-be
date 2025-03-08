@@ -1,31 +1,52 @@
 import { z } from "zod";
+import { variantZodSchema } from "../variant/variant.validate";
 
-// Zod schema cho một variant
-export const variantZodSchema = z.object({
-  // Dùng Record cho các thuộc tính tùy biến: key là string, value cũng là string
-  attributes: z.record(z.string()),
-  price: z.number().nonnegative(),
-  image: z.string().min(2).max(50).optional(),
-  stock: z.number().int().nonnegative(),
-  sku: z.string().optional(),
-});
-
-// Zod schema cho Product
-export const productZodSchema = z.object({
-  title: z
-    .string()
-    .min(2, { message: "Title must have at least 2 characters" })
-    .max(200),
-  description: z.string().optional(),
-  slug: z
-    .string()
-    .min(2)
-    .max(100)
-    .regex(/^[a-z0-9]+(?:(?:-|_)+[a-z0-9]+)*$/gim, {
-      message:
-        "Slug must contain only lowercase letters, numbers, dashes or underscores",
+export const productZodSchema = z
+  .object({
+    title: z
+      .string()
+      .min(2, { message: "Title must have at least 2 characters" })
+      .max(200, { message: "Title must not exceed 200 characters" }),
+    description: z.string().optional(),
+    image: z
+      .string()
+      .min(2, { message: "Image URL must have at least 2 characters" })
+      .max(200, { message: "Image URL must not exceed 200 characters" })
+      .optional(),
+    slug: z
+      .string()
+      .min(2, { message: "Slug must have at least 2 characters" })
+      .max(100, { message: "Slug must not exceed 100 characters" }),
+    categories: z.array(z.string()).optional().default([]),
+    images: z
+      .array(
+        z
+          .string()
+          .url({ message: "Each image must be a valid URL" })
+          .min(2, { message: "Image URL must have at least 2 characters" })
+          .max(200, { message: "Image URL must not exceed 200 characters" })
+      )
+      .optional()
+      .default([]),
+    minPrice: z
+      .number()
+      .nonnegative({ message: "minPrice must be nonnegative" })
+      .nullable()
+      .optional(),
+    variantOptions: z
+      .array(
+        z.object({
+          values: z.array(z.string()).min(1),
+          name: z.string().max(50),
+        })
+      )
+      .optional()
+      .default([]),
+    variants: z.array(variantZodSchema).min(1, {
+      message: "There must be at least one variant",
     }),
-  categories: z.array(z.string()).optional(),
-  variants: z.array(variantZodSchema).optional(), // Nếu không truyền thì có thể dùng default [] trong Mongoose
-});
+  })
+  .strict();
+
+export type ProductInput = z.infer<typeof productZodSchema>;
 export const updateProductZodSchema = productZodSchema.partial();

@@ -13,6 +13,7 @@ const create = async (req: Request, res: Response) => {
       res.status(400).json({
         message: `${duplicateKey} already exists: ${error.keyValue[duplicateKey]}`,
       });
+      return;
     }
     console.error("Error creating document:", error);
     res.status(500).json({ message: "Server error" });

@@ -1,46 +1,16 @@
 import { Document, Model, model, Schema } from "mongoose";
 
-interface IVariant {
-  attributes: Record<string, string>; // Ví dụ: { color: "red", size: "M" }
-  price: number;
-  image: string;
-  stock: number; // Số lượng tồn kho hiện tại của biến thể
-  sku?: string;
-}
-
 export interface IProduct extends Document {
   title: string;
   description: string;
   slug: string;
   categories: string[];
-  variants: IVariant[];
+  image?: string;
+  images: string[]; // Mảng URL ảnh
+  minPrice?: number | null;
+  variantOptions: Record<string, string[]>;
+  variants: string[];
 }
-
-const variantSchema = new Schema<IVariant>(
-  {
-    attributes: {
-      type: Map,
-      of: String,
-      required: true,
-    },
-    price: {
-      type: Number,
-      required: true,
-    },
-    image: {
-      type: String,
-      minLength: 2,
-      maxLength: 200,
-    },
-    stock: {
-      type: Number,
-      required: true,
-      default: 0,
-    },
-    sku: String,
-  },
-  { _id: false }
-);
 
 const productSchema = new Schema<IProduct>(
   {
@@ -51,7 +21,9 @@ const productSchema = new Schema<IProduct>(
       maxLength: 200,
       index: true,
     },
-    description: String,
+    description: {
+      type: String,
+    },
     slug: {
       type: String,
       required: true,
@@ -64,19 +36,33 @@ const productSchema = new Schema<IProduct>(
       type: [String],
       default: [],
     },
-    variants: {
-      type: [variantSchema],
+    image: {
+      type: String,
+      minLength: 1,
+      maxLength: 100,
+    },
+    images: {
+      type: [String],
       default: [],
     },
+    minPrice: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+    variantOptions: {
+      type: Schema.Types.Mixed,
+      default: {},
+    },
+    variants: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Variant",
+      },
+    ],
   },
   { timestamps: true, versionKey: false }
 );
-
-// Tùy chọn: tạo index hỗ trợ tìm kiếm theo thuộc tính biến thể nếu cần
-// productSchema.index({
-//   "variants.attributes.color": 1,
-//   "variants.attributes.size": 1,
-// });
 
 const Product: Model<IProduct> = model<IProduct>("Product", productSchema);
 export default Product;

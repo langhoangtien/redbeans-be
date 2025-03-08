@@ -9,7 +9,8 @@ import {
   PaymentsController,
 } from "@paypal/paypal-server-sdk";
 import Product, { IProduct } from "../product/product.model";
-import config from "@/config/config";
+import config from "@/config";
+import Variant, { IVariant } from "../variant/variant.model";
 
 const client = new Client({
   clientCredentialsAuthCredentials: {
@@ -32,6 +33,7 @@ interface ICart {
   products: {
     slug: string;
     quantity: number;
+    id: string;
     attributes: Record<string, string>;
   }[];
   voucher?: string;
@@ -46,44 +48,19 @@ const createOrder = async (req: Request, res: Response): Promise<any> => {
     // Duyệt qua từng sản phẩm trong giỏ hàng
     for (const item of cart.products) {
       // Tìm sản phẩm theo slug
-      const product: IProduct | null = await Product.findOne({
-        slug: item.slug,
-      }).lean();
+      const product: IVariant | null = await Variant.findById(item.id).lean();
+
       if (!product) {
         res.status(400).json({
-          message: `Product with slug ${item.slug} not found`,
+          message: `Variant with id ${item.id} not found`,
         });
         return;
       }
 
       // Tìm biến thể khớp dựa trên các thuộc tính
-      const variant = product.variants.find((v) => {
-        const vAttributes = v.attributes;
-        const itemAttributes = item.attributes;
-
-        // Kiểm tra số lượng key phải bằng nhau
-        const keysMatch =
-          Object.keys(vAttributes).length ===
-          Object.keys(itemAttributes).length;
-        if (!keysMatch) return false;
-
-        // So sánh từng key-value
-        return Object.keys(itemAttributes).every(
-          (key) => vAttributes[key] === itemAttributes[key]
-        );
-      });
-
-      if (!variant) {
-        res.status(400).json({
-          message: `Variant not found for product ${
-            item.slug
-          } with attributes ${JSON.stringify(item.attributes)}`,
-        });
-        return;
-      }
 
       // Tính tổng tiền dựa trên giá của biến thể và số lượng
-      total += variant.price * item.quantity;
+      total += product.price * item.quantity;
     }
 
     // Xây dựng object yêu cầu cho PayPal
@@ -111,11 +88,14 @@ const createOrder = async (req: Request, res: Response): Promise<any> => {
       return;
     }
     res.json(JSON.parse(body as string));
+    return;
   } catch (error: unknown) {
     if (error instanceof ApiError) {
-      throw new Error(error.message);
+      res.status(500).json({ message: error.message });
+      return;
     }
-    throw error;
+    res.status(500).json({ message: "Internal Server Error" });
+    return;
   }
 };
 const createPayment = (req: Request, res: Response) => {
@@ -149,9 +129,11 @@ const captureOrder = async (req: Request, res: Response): Promise<any> => {
     // };
   } catch (error: unknown) {
     if (error instanceof ApiError) {
-      throw new Error(error.message);
+      res.status(500).json({ message: error.message });
+      return;
     }
-    throw error;
+    res.status(500).json({ message: "Internal Server Error" });
+    return;
   }
 };
 

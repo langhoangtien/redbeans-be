@@ -13,4 +13,6 @@ export default {
   jwtExpiration: process.env.JWT_EXPIRATION || "1h",
   paypalClientId: process.env.PAYPAL_CLIENT_ID || "",
   paypalClientSecret: process.env.PAYPAL_CLIENT_SECRET || "",
+  paypalApi: process.env.PAYPAL_API || "https://api-m.sandbox.paypal.com",
+  paypalMode: process.env.PAYPAL_MODE || "sandbox",
 };

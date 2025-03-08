@@ -4,7 +4,6 @@ import { Request, Response } from "express";
 import mongoose, { mongo } from "mongoose";
 import { hashPassword } from "@/utilities";
 
-const userController = baseController(User, "-password -salt");
 const create = async (req: Request, res: Response) => {
   try {
     const userDto = { ...req.body };
@@ -22,6 +21,7 @@ const create = async (req: Request, res: Response) => {
       res.status(400).json({
         message: `${duplicateKey} already exists: ${error.keyValue[duplicateKey]}`,
       });
+      return;
     }
     console.error("Error creating document:", error);
     res.status(500).json({ message: "Server error" });
@@ -46,6 +46,42 @@ const findOne = async (req: Request, res: Response) => {
     console.error("Error fetching document:", error);
     res.status(500).json({ message: "Server error" });
     return;
+  }
+};
+
+const getAll = async (req: Request, res: Response) => {
+  try {
+    let page = Math.max(parseInt(req.query.page as string) || 1, 1);
+    let limit = Math.max(parseInt(req.query.limit as string) || 10, 1);
+    const search = (req.query.search as string)?.trim() || "";
+    const skip = (page - 1) * limit;
+
+    // Tạo điều kiện tìm kiếm
+    let query: any = {};
+    if (search) {
+      query.$or = [
+        { username: { $regex: search, $options: "i" } }, // Không phân biệt hoa thường
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Chạy song song để tối ưu truy vấn
+    const [docs, totalDocs] = await Promise.all([
+      User.find(query).skip(skip).limit(limit).select("-password -salt"),
+      User.countDocuments(query),
+    ]);
+
+    // Tính tổng số trang
+    const totalPages = Math.ceil(totalDocs / limit);
+    if (page > totalPages) page = totalPages || 1; // Nếu vượt quá, set về trang cuối cùng
+
+    res.json({
+      data: docs,
+      pagination: { total: totalDocs, page, limit, totalPages },
+    });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -80,5 +116,60 @@ const update = async (req: Request, res: Response) => {
     return;
   }
 };
-const combineControllers = { ...userController, create, update, findOne };
+
+const remove = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400).json({ message: "Invalid ID format" });
+    return;
+  }
+  try {
+    const deletedDoc = await User.findByIdAndDelete(id);
+
+    if (!deletedDoc) {
+      res.status(404).json({ message: "Document not found" });
+    }
+
+    res.json({ message: "Document deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting document:", error);
+    res.status(500).json({ message: "Server error" });
+    return;
+  }
+};
+
+const deleteMany = async (req: Request, res: Response) => {
+  const { ids } = req.body;
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    res.status(400).json({ message: "Invalid IDs format" });
+    return;
+  }
+  if (!ids.every((id: any) => mongoose.Types.ObjectId.isValid(id))) {
+    res.status(400).json({ message: "One or more IDs are invalid" });
+    return;
+  }
+  try {
+    const deletedDocs = await User.deleteMany({ _id: { $in: ids } });
+
+    if (deletedDocs.deletedCount === 0) {
+      res.status(404).json({ message: "Document not found" });
+      return;
+    }
+
+    res.json({ message: "Documents deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting documents:", error);
+    res.status(500).json({ message: "Server error" });
+    return;
+  }
+};
+const combineControllers = {
+  create,
+  update,
+  findOne,
+  getAll,
+  remove,
+  deleteMany,
+};
 export default combineControllers;

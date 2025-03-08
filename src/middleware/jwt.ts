@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import config from "@/config/config";
+import config from "@/config";
 import { IUser } from "@/modules/user/model";
 export interface IGetUserAuthInfoRequest extends Request {
   user?: IUser;

@@ -2,18 +2,29 @@ import authenticateJWT from "./middleware/jwt";
 import router from "./routes";
 import express, { Request, Response, NextFunction } from "express";
 import publicRouter from "./routes/public.route";
+import cors from "cors";
 
 const app = express();
 // app.use((req, res, next) => {
 //   console.log(`Request Path: ${req.path}`);
 //   next();
 // });
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*"); // Cho phép tất cả các origin
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  next();
-});
+
+const allowedOrigins = ["http://localhost:3001", "https://yourdomain.com"];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use("/", publicRouter);
 app.use("/", authenticateJWT, router);

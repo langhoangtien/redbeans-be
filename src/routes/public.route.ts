@@ -6,7 +6,10 @@ import productController from "@/modules/product/product.controller";
 
 const router = express.Router();
 router.get("/posts", postController.getAll);
+
 router.get("/products", productController.getAll);
+router.get("/products/:id", productController.findOne);
 router.post("/auth/login", authController.login);
 router.use("/payment", paymentRouter);
+
 export default router;

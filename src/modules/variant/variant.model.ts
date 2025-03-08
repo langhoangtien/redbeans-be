@@ -2,8 +2,9 @@ import { Document, Model, model, Schema } from "mongoose";
 
 export interface IVariant extends Document {
   productId: Schema.Types.ObjectId; // Tham chiếu đến Product
-  attributes: Record<string, string>; // Ví dụ: { color: "red", size: "M" }
+  attributes?: { name: string; value: string }[]; // Ví dụ: { color: "red", size: "M" }
   price: number;
+  salePrice?: number;
   image: string;
   stock: number; // Số lượng tồn kho hiện tại của biến thể
   sku?: string;
@@ -16,14 +17,25 @@ const variantSchema = new Schema<IVariant>(
       ref: "Product",
       required: true,
     },
-    attributes: {
-      type: Map,
-      of: String,
-      required: true,
-    },
+    attributes: [
+      {
+        name: { type: String, required: true },
+        value: { type: String, required: true },
+      },
+    ],
     price: {
       type: Number,
       required: true,
+      min: 0,
+    },
+    salePrice: {
+      type: Number,
+      validate: {
+        validator: function (this: IVariant, value: number) {
+          return value <= this.price;
+        },
+        message: "Sale price phải nhỏ hơn price.",
+      },
     },
     image: {
       type: String,
@@ -34,6 +46,7 @@ const variantSchema = new Schema<IVariant>(
       type: Number,
       required: true,
       default: 0,
+      min: 0,
     },
     sku: String,
   },
