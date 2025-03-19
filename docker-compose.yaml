@@ -36,6 +36,8 @@ services:
       MONGO_URI: mongodb://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@mongo:27017/mydatabase
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION}
+    volumes:
+      - ./uploads:/app/dist/uploads
 
 volumes:
   mongo-data:

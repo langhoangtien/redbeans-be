@@ -5,12 +5,8 @@ import { validateSchema } from "@/utilities";
 import { orderSchema, updateOrderSchema } from "./order.validate";
 
 orderRouter.get("/", controller.getAll);
-orderRouter.post("/", validateSchema(orderSchema), (req, res) => {
-  return controller.create(req, res);
-});
-orderRouter.patch("/:id", validateSchema(updateOrderSchema), (req, res) => {
-  return controller.update(req, res);
-});
+orderRouter.post("/", validateSchema(orderSchema), controller.create);
+orderRouter.patch("/:id", validateSchema(updateOrderSchema), controller.update);
 orderRouter.delete("/:id", controller.remove);
 orderRouter.get("/:id", controller.findOne);
 

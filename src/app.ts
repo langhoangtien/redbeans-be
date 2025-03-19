@@ -10,7 +10,11 @@ const app = express();
 //   next();
 // });
 
-const allowedOrigins = ["http://localhost:3001", "https://yourdomain.com"];
+const allowedOrigins = [
+  "http://localhost:3001",
+  "https://yourdomain.com",
+  "http://localhost:5173",
+];
 
 app.use(
   cors({

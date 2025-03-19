@@ -4,24 +4,8 @@ export const cartSchema = z.object({
   products: z
     .array(
       z.object({
-        slug: z
-          .string()
-          .min(1, { message: "Slug is required" })
-          .max(200, { message: "Slug must not exceed 200 characters" })
-          .regex(/^[a-z0-9]+(?:(?:-|_)+[a-z0-9]+)*$/gim, {
-            message:
-              "Slug must contain only lowercase letters, numbers, dashes or underscores",
-          }),
-        quantity: z
-          .number()
-          .int({ message: "Quantity must be an integer" })
-          .positive({ message: "Quantity must be a positive number" })
-          .max(1000, { message: "Quantity must not exceed 1000" }),
-        attributes: z.record(
-          z.string().max(30, {
-            message: "Each attribute value must not exceed 30 characters",
-          })
-        ),
+        id: z.string().min(1).max(200),
+        quantity: z.number().int().positive().max(1000),
       })
     )
     .nonempty({ message: "Products array cannot be empty" }),
@@ -29,7 +13,26 @@ export const cartSchema = z.object({
     .string()
     .max(200, { message: "Voucher must not exceed 200 characters" })
     .optional(),
+  shippingAddress: z.object({
+    fullName: z.string().min(1).max(200),
+    address: z.string().min(1).max(200),
+    address2: z.string().max(200).optional(),
+    city: z.string().min(1).max(200),
+    state: z.string().max(200).optional(),
+    postalCode: z.string().min(1).max(200),
+    country: z.string().min(2).max(2),
+    phone: z.string().min(7).max(15).optional(),
+  }),
+  billingAddress: z.object({
+    fullName: z.string().min(1).max(200),
+    phone: z.string().min(7).max(15).optional(),
+    address: z.string().min(1).max(200),
+    address2: z.string().max(200).optional(),
+    city: z.string().min(1).max(200),
+    state: z.string().max(200).optional(),
+    postalCode: z.string().min(1).max(200),
+    country: z.string().min(2).max(2),
+  }),
 });
 
-// Sử dụng:
-type ICart = z.infer<typeof cartSchema>;
+export type ICart = z.infer<typeof cartSchema>;

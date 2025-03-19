@@ -1,12 +1,27 @@
-import mongoose, { mongo } from "mongoose";
+import mongoose from "mongoose";
 import { Request, Response } from "express";
 import model from "./product.model";
 
 import VariantModel, { IVariant } from "../variant/variant.model";
+
 interface VariantOption {
   name: string;
   values: string[];
 }
+const getMinPrice = (variants: { price: number; salePrice: number }[]) => {
+  if (variants.length === 0) return { minPrice: 0, minSalePrice: 0 };
+  let minPrice = variants[0].price;
+  let minSalePrice = variants[0].salePrice;
+  for (let i = 1; i < variants.length; i++) {
+    if (variants[i].price < minPrice) {
+      minPrice = variants[i].price;
+    }
+    if (variants[i].salePrice < minSalePrice) {
+      minSalePrice = variants[i].salePrice;
+    }
+  }
+  return { minPrice, minSalePrice };
+};
 const generateVariantCombinations = (
   variantOptions: VariantOption[]
 ): { name: string; value: string }[][] => {
@@ -26,11 +41,13 @@ const generateVariantCombinations = (
 };
 const compareVariant = (
   userVariants: any[],
-  variantOptions: VariantOption[]
+  variantOptions: VariantOption[],
+  productId?: string
 ) => {
   if (variantOptions.length === 0) {
     const variant = userVariants[0];
     variant.attributes = [];
+    variant.productId = productId;
     return [variant];
   }
   const expectedVariants = generateVariantCombinations(variantOptions);
@@ -58,8 +75,10 @@ const compareVariant = (
       salePrice: matchedVariant?.salePrice ?? 0,
       stock: matchedVariant?.stock ?? 0,
       sku: matchedVariant?.sku ?? "",
+      productId,
     };
   });
+
   const uniqueVariants = Array.from(
     new Map(
       finalVariants.map((v) => [
@@ -86,15 +105,16 @@ const create = async (req: Request, res: Response) => {
 
     const finalVariants = compareVariant(userVariants, variantOptions);
     // Tính toán giá thấp nhất từ các biến thể
-    const minPrice = Math.min(...finalVariants.map((variant) => variant.price));
+    const { minPrice, minSalePrice } = getMinPrice(finalVariants);
     const newProduct = new model({
-      title: parsedData.title,
+      name: parsedData.name,
       description: parsedData.description,
       image: parsedData.image,
       slug: parsedData.slug,
       categories: parsedData.categories,
       images: parsedData.images,
       minPrice,
+      minSalePrice,
       variantOptions,
     });
 
@@ -127,16 +147,27 @@ const getAll = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+
+    const search = (req.query.search as string)?.trim() || "";
     const skip = (page - 1) * limit;
 
-    const docs = await model
-      .find()
-      .populate("variants")
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    let query: any = {};
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: "i" } }, // Không phân biệt hoa thường
+        { slug: { $regex: search, $options: "i" } },
+      ];
+    }
 
-    const totalDocs = await model.countDocuments();
+    const [docs, totalDocs] = await Promise.all([
+      model
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("variants"),
+      model.countDocuments(query),
+    ]);
     res.json({
       data: docs,
       pagination: {
@@ -168,13 +199,41 @@ const update = async (req: Request, res: Response) => {
       return;
     }
 
-    // Cập nhật thông tin sản phẩm
-    Object.assign(existingProduct, updateData);
+    // Cập nhật thông tin sản phẩm khi không có biến thể mới
+    if (updateData.variants[0]._id) {
+      const { variants } = updateData;
+      const cloneUpdate = { ...updateData };
+      delete cloneUpdate.variants;
+      delete cloneUpdate.variantOptions;
+      const updatedVariants = await Promise.all(
+        variants.map(async (variant: IVariant) => {
+          const existingVariant = await VariantModel.findById(variant._id);
+          if (!existingVariant) {
+            return null;
+          }
+          Object.assign(existingVariant, variant, { productId: id });
+          return existingVariant.save();
+        })
+      );
+      const { minPrice, minSalePrice } = getMinPrice(updatedVariants as any);
+      Object.assign(existingProduct, cloneUpdate, { minPrice, minSalePrice });
+      const updatedProduct = await existingProduct.save();
+      res.json({
+        message: "Product updated successfully",
+        product: updatedProduct,
+        variants: updatedVariants,
+      });
+      return;
+    }
 
+    // Cập nhật thông tin sản phẩm nếu có biến thể mới
+    Object.assign(existingProduct, updateData);
     if (updateData.variantOptions || updateData.variants) {
+      console.log("Updating variants", updateData);
+
       const {
         variantOptions,
-        minPrice,
+
         variants: userVariants = [],
       } = updateData;
 
@@ -186,45 +245,10 @@ const update = async (req: Request, res: Response) => {
         return;
       }
 
-      // Tạo danh sách đầy đủ các biến thể từ variantOptions
-      const expectedVariants = generateVariantCombinations(variantOptions);
-
-      const finalVariants = expectedVariants.map((expectedVariant) => {
-        const matchedVariant = userVariants.find(
-          (v: {
-            attributes?: { name: string; value: string }[];
-            price?: number;
-            salePrice?: number;
-            stock?: number;
-            sku?: string;
-          }) =>
-            v.attributes &&
-            expectedVariant.every(({ name, value }) =>
-              v.attributes?.some(
-                (attr) => attr.name === name && attr.value === value
-              )
-            )
-        );
-
-        return {
-          attributes: expectedVariant,
-          price: matchedVariant?.price ?? minPrice ?? 0,
-          salePrice: matchedVariant?.salePrice ?? 0,
-          stock: matchedVariant?.stock ?? 0,
-          sku: matchedVariant?.sku ?? "",
-          productId: id,
-        };
-      });
-
+      const uniqueVariants = compareVariant(userVariants, variantOptions, id);
+      const { minPrice, minSalePrice } = getMinPrice(uniqueVariants);
       // Xóa variants cũ
       await VariantModel.deleteMany({ productId: id });
-
-      // Loại bỏ biến thể trùng lặp
-      const uniqueVariants = Array.from(
-        new Map(
-          finalVariants.map((v) => [JSON.stringify(v.attributes), v])
-        ).values()
-      );
 
       // Chèn các variants mới
       const newVariants = (await VariantModel.insertMany(
@@ -235,6 +259,8 @@ const update = async (req: Request, res: Response) => {
 
       // Cập nhật danh sách variants mới vào sản phẩm
       existingProduct.variants = newVariants.map((v) => v._id.toString());
+      existingProduct.minPrice = minPrice;
+      existingProduct.minSalePrice = minSalePrice;
     }
 
     // Lưu sản phẩm sau khi cập nhật
@@ -293,4 +319,32 @@ const findOne = async (req: Request, res: Response) => {
   }
 };
 
-export default { create, getAll, update, remove, findOne };
+const deleteMany = async (req: Request, res: Response) => {
+  const { ids } = req.body;
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    res.status(400).json({ message: "Invalid IDs format" });
+    return;
+  }
+  if (!ids.every((id: any) => mongoose.Types.ObjectId.isValid(id))) {
+    res.status(400).json({ message: "One or more IDs are invalid" });
+    return;
+  }
+  try {
+    const deletedDocs = await model.deleteMany({ _id: { $in: ids } });
+    await VariantModel.deleteMany({
+      productId: { $in: ids },
+    });
+    if (deletedDocs.deletedCount === 0) {
+      res.status(404).json({ message: "Document not found" });
+      return;
+    }
+
+    res.json({ message: "Documents deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting documents:", error);
+    res.status(500).json({ message: "Server error" });
+    return;
+  }
+};
+export default { create, getAll, update, remove, findOne, deleteMany };

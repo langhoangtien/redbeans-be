@@ -5,6 +5,8 @@ const crypto = require("crypto");
 export const validateSchema = (schema: ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
+      console.log(req.body);
+
       // Validate dữ liệu từ client bằng Zod
       schema.parse(req.body); // Nếu không hợp lệ, Zod sẽ ném lỗi
 

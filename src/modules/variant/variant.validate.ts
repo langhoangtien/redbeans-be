@@ -4,8 +4,8 @@ const baseVariantSchema = z.object({
   attributes: z
     .array(
       z.object({
-        name: z.string().min(2).max(50),
-        value: z.string().min(2).max(50),
+        name: z.string().min(1).max(50),
+        value: z.string().min(1).max(50),
       })
     )
     .default([]), // ✅ Mặc định là mảng rỗng
@@ -16,9 +16,7 @@ const baseVariantSchema = z.object({
 
   image: z.string().min(2).max(200).optional(),
 
-  stock: z.number().int().nonnegative({
-    message: "Stock must be a nonnegative integer",
-  }),
+  stock: z.number().int().nonnegative(),
 
   sku: z.string().optional(),
 });

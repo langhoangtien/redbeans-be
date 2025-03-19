@@ -1,8 +1,9 @@
 import mongoose, { mongo } from "mongoose";
 import { Request, Response } from "express";
-import model from "./order.model"; // Adjust the import path as necessary
+import model from "./review.model"; // Adjust the import path as necessary
 
 const create = async (req: Request, res: Response) => {
+  console.log("XXX2");
   try {
     const newModel = new model(req.body);
     const newDoc = await newModel.save();
@@ -16,6 +17,8 @@ const create = async (req: Request, res: Response) => {
       return;
     }
     console.error("Error creating document:", error);
+    console.log("XXX2", error);
+
     res.status(500).json({ message: "Server error" });
     return;
   }
@@ -25,11 +28,17 @@ const getAll = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const productId = req.query.productId as string;
+
     const skip = (page - 1) * limit;
+    const filter = productId ? { productId } : {};
 
-    const docs = await model.find().skip(skip).limit(limit);
+    // Chạy song song để tối ưu hiệu suất
+    const [docs, totalDocs] = await Promise.all([
+      model.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      model.countDocuments(filter),
+    ]);
 
-    const totalDocs = await model.countDocuments();
     res.json({
       data: docs,
       pagination: {
@@ -42,7 +51,6 @@ const getAll = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error fetching documents:", error);
     res.status(500).json({ message: "Server error" });
-    return;
   }
 };
 const update = async (req: Request, res: Response) => {
@@ -51,7 +59,8 @@ const update = async (req: Request, res: Response) => {
     res.status(400).json({ message: "Invalid ID format" });
     return;
   }
-  const updateData = req.body;
+
+  const updateData = { ...req.body, updatedAt: new Date() };
 
   try {
     const updatedDoc = await model.findByIdAndUpdate(id, updateData, {
@@ -113,4 +122,30 @@ const findOne = async (req: Request, res: Response) => {
   }
 };
 
-export default { create, getAll, update, remove, findOne };
+const deleteMany = async (req: Request, res: Response) => {
+  const { ids } = req.body;
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    res.status(400).json({ message: "Invalid IDs format" });
+    return;
+  }
+  if (!ids.every((id: any) => mongoose.Types.ObjectId.isValid(id))) {
+    res.status(400).json({ message: "One or more IDs are invalid" });
+    return;
+  }
+  try {
+    const deletedDocs = await model.deleteMany({ _id: { $in: ids } });
+
+    if (deletedDocs.deletedCount === 0) {
+      res.status(404).json({ message: "Document not found" });
+      return;
+    }
+
+    res.json({ message: "Documents deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting documents:", error);
+    res.status(500).json({ message: "Server error" });
+    return;
+  }
+};
+export default { create, getAll, update, remove, findOne, deleteMany };

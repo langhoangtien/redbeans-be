@@ -1,20 +1,21 @@
 import { Document, Model, model, Schema } from "mongoose";
 
 export interface IProduct extends Document {
-  title: string;
+  name: string;
   description: string;
   slug: string;
   categories: string[];
   image?: string;
-  images: string[]; // Mảng URL ảnh
-  minPrice?: number | null;
+  images?: string[]; // Mảng URL ảnh
+  minPrice?: number;
+  minSalePrice?: number;
   variantOptions: Record<string, string[]>;
   variants: string[];
 }
 
 const productSchema = new Schema<IProduct>(
   {
-    title: {
+    name: {
       type: String,
       required: true,
       minLength: 2,
@@ -47,7 +48,12 @@ const productSchema = new Schema<IProduct>(
     },
     minPrice: {
       type: Number,
-      default: null,
+      default: 0,
+      min: 0,
+    },
+    minSalePrice: {
+      type: Number,
+      default: 0,
       min: 0,
     },
     variantOptions: {
@@ -58,6 +64,7 @@ const productSchema = new Schema<IProduct>(
       {
         type: Schema.Types.ObjectId,
         ref: "Variant",
+        required: true,
       },
     ],
   },

@@ -2,10 +2,10 @@ import { z } from "zod";
 
 // Định nghĩa enum cho status và paymentMethod sử dụng z.enum
 export const OrderStatusEnum = z.enum([
-  "pending",
-  "paid",
-  "shipped",
-  "cancelled",
+  "PENDING",
+  "COMPLETE",
+  "REFUNDED",
+  "CANCELLED",
 ]);
 export const PaymentMethodEnum = z.enum([
   "paypal",
@@ -16,17 +16,14 @@ export const PaymentMethodEnum = z.enum([
 
 // Schema cho từng Order Item, sử dụng productId thay vì slug
 const orderItemSchema = z.object({
-  productId: z.string().min(1, { message: "Product ID is required" }), // Giả sử ID được truyền dưới dạng chuỗi
+  variantId: z.string().min(1, { message: "Variant ID is required" }), // Giả sử ID được truyền dưới dạng chuỗi
+  name: z.string().max(200, { message: "Name must not exceed 200 characters" }),
+  productId: z.string().min(1, { message: "Product ID is required" }),
   quantity: z
     .number()
     .int({ message: "Quantity must be an integer" })
     .positive({ message: "Quantity must be a positive number" })
     .max(1000, { message: "Quantity must not exceed 1000" }),
-  attributes: z.record(
-    z.string().max(30, {
-      message: "Each attribute value must not exceed 30 characters",
-    })
-  ),
   price: z
     .number()
     .nonnegative({ message: "Price must be a nonnegative number" }),
@@ -45,8 +42,38 @@ export const orderSchema = z.object({
   total: z
     .number()
     .nonnegative({ message: "Total must be a nonnegative number" }),
+  email: z.string().email(),
+  trackingNumber: z.string().optional(),
+  logisticPartner: z.string().optional(),
+  isSendEmail: z.boolean().optional(),
+  name: z.string().optional(),
+
   // Nếu có user, có thể là string id (tùy vào cách bạn xử lý ObjectId)
   user: z.string().optional(),
+  shippingAddress: z
+    .object({
+      fullName: z.string().min(1).max(200),
+      address: z.string().min(1).max(200),
+      address2: z.string().max(200).optional(),
+      city: z.string().min(1).max(200),
+      state: z.string().max(200).optional(),
+      postalCode: z.string().min(1).max(200),
+      country: z.string().min(2).max(2),
+      phone: z.string().min(7).max(15).optional(),
+    })
+    .optional(),
+  billingAddress: z
+    .object({
+      fullName: z.string().min(1).max(200),
+      phone: z.string().min(7).max(15).optional(),
+      address: z.string().min(1).max(200),
+      address2: z.string().max(200).optional(),
+      city: z.string().min(1).max(200),
+      state: z.string().max(200).optional(),
+      postalCode: z.string().min(1).max(200),
+      country: z.string().min(2).max(2),
+    })
+    .optional(),
   status: OrderStatusEnum,
   paymentMethod: PaymentMethodEnum,
   // Timestamps có thể được validate nếu cần

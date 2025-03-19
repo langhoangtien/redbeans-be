@@ -30,7 +30,7 @@ async function generateClientToken(req: Request, res: Response) {
     const accessToken = await getAccessToken();
     if (!accessToken) {
       res.status(500).json({ error: "Error generating access token" });
-      return null;
+      return;
     }
 
     // 2️⃣ Lấy client token
@@ -48,7 +48,7 @@ async function generateClientToken(req: Request, res: Response) {
   } catch (error) {
     console.error("Error generating client token:", error);
     res.status(500).json({ error: "Error generating client token" });
-    return null;
+    return;
   }
 }
 export async function createOrder(req: Request, res: Response) {

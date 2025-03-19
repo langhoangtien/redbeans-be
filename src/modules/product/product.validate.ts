@@ -3,28 +3,18 @@ import { variantZodSchema } from "../variant/variant.validate";
 
 export const productZodSchema = z
   .object({
-    title: z
-      .string()
-      .min(2, { message: "Title must have at least 2 characters" })
-      .max(200, { message: "Title must not exceed 200 characters" }),
+    name: z.string().min(2).max(200),
     description: z.string().optional(),
-    image: z
-      .string()
-      .min(2, { message: "Image URL must have at least 2 characters" })
-      .max(200, { message: "Image URL must not exceed 200 characters" })
-      .optional(),
-    slug: z
-      .string()
-      .min(2, { message: "Slug must have at least 2 characters" })
-      .max(100, { message: "Slug must not exceed 100 characters" }),
+    image: z.string().min(2).max(200).optional(),
+    slug: z.string().min(2).max(100),
     categories: z.array(z.string()).optional().default([]),
     images: z
       .array(
         z
           .string()
-          .url({ message: "Each image must be a valid URL" })
-          .min(2, { message: "Image URL must have at least 2 characters" })
-          .max(200, { message: "Image URL must not exceed 200 characters" })
+
+          .min(2)
+          .max(200)
       )
       .optional()
       .default([]),

@@ -15,6 +15,7 @@ productRouter.patch(
     return controller.update(req, res);
   }
 );
+productRouter.delete("/delete-many", controller.deleteMany);
 productRouter.delete("/:id", controller.remove);
 productRouter.get("/:id", controller.findOne);
 
