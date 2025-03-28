@@ -1,5 +1,5 @@
 import express from "express";
-import { validateSchema } from "@/utilities";
+import { validateSchema } from "../../utilities/index.js";
 import { ZodSchema } from "zod";
 
 const baseRouter = (

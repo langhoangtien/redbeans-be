@@ -6,15 +6,15 @@ import {
   Environment,
   LogLevel,
   OrdersController,
-  PaymentsController,
   PurchaseUnitRequest,
 } from "@paypal/paypal-server-sdk";
 import { ObjectId } from "mongodb";
-import { IProduct } from "../product/product.model";
-import config from "@/config";
-import Variant, { IVariant } from "../variant/variant.model";
-import Order, { IOrderItem } from "../order/order.model";
-import { Schema } from "mongoose";
+import { IProduct } from "../product/product.model.js";
+import config from "../../config/index.js";
+import Variant from "../variant/variant.model.js";
+import Order, { IOrderItem } from "../order/order.model.js";
+
+import { calculateTax } from "../../utilities/index.js";
 
 const client = new Client({
   clientCredentialsAuthCredentials: {
@@ -29,10 +29,7 @@ const client = new Client({
     logResponse: { logHeaders: true },
   },
 });
-interface OrderResponse {
-  jsonResponse: any;
-  httpStatusCode: number;
-}
+
 interface ICart {
   products: {
     quantity: number;
@@ -65,27 +62,19 @@ interface ICart {
     country: string;
   };
 }
-interface IProductOrder {
-  quantity: number;
-  attributes: {
-    name: string;
-    value: string;
-  }[];
-  productId: any;
-  variantId: any;
-  price: number;
-  name: string;
-}
+
 // interface IPurchaseUnitRequest {
 //   amount: {
 const ordersController = new OrdersController(client);
-const paymentsController = new PaymentsController(client);
+
 const createOrder = async (req: Request, res: Response): Promise<any> => {
+  console.log("CREATE_ORDER");
+
   const cart: ICart = req.body;
   const cartClone = { ...cart };
   delete cartClone.voucher;
   let products: IOrderItem[] = [];
-  let total = 0;
+  let totalWithoutTax = 0;
   try {
     // Duyệt qua từng sản phẩm trong giỏ hàng
     for (const item of cart.products) {
@@ -114,8 +103,17 @@ const createOrder = async (req: Request, res: Response): Promise<any> => {
 
       products.push(data);
       // Tính tổng tiền dựa trên giá của biến thể và số lượng
-      total += (product.price || 0) * item.quantity;
+      totalWithoutTax += (product.price || 0) * item.quantity;
     }
+    const total =
+      totalWithoutTax *
+      (1 +
+        calculateTax(
+          cart.shippingAddress.country,
+          cart.shippingAddress.state || ""
+        ));
+
+    console.log("TOTAL", total, "TOTAL_WITHOUT_TAX", totalWithoutTax);
 
     cartClone.amount = total.toFixed(2);
     const purchase: PurchaseUnitRequest = {
@@ -198,6 +196,7 @@ const createOrder = async (req: Request, res: Response): Promise<any> => {
 
 const captureOrder = async (req: Request, res: Response): Promise<any> => {
   const { id } = req.params;
+  console.log("ID_CAPTURE", id);
   const collect = {
     id,
     prefer: "return=minimal",

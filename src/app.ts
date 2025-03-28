@@ -1,7 +1,7 @@
-import authenticateJWT from "./middleware/jwt";
-import router from "./routes";
-import express, { Request, Response, NextFunction } from "express";
-import publicRouter from "./routes/public.route";
+import authenticateJWT from "./middleware/jwt.js";
+import router from "./routes/index.js";
+import express from "express";
+import publicRouter from "./routes/public.route.js";
 import cors from "cors";
 
 const app = express();
@@ -12,9 +12,10 @@ const app = express();
 
 const allowedOrigins = [
   "http://localhost:3001",
-  "https://yourdomain.com",
+  "https://quitmood.net",
   "http://localhost:5173",
 ];
+console.log("Allowed origins2:", allowedOrigins);
 
 app.use(
   cors({
@@ -32,18 +33,5 @@ app.use(
 app.use(express.json());
 app.use("/", publicRouter);
 app.use("/", authenticateJWT, router);
-app.use(
-  (
-    err: any,
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
-  ) => {
-    console.error("Error occurred:", err);
-    const statusCode = err.status || 500;
-    res.status(statusCode).json({
-      error: err.message || "Internal Server Error",
-    });
-  }
-);
+
 export default app;

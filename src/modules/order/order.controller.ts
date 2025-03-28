@@ -1,6 +1,6 @@
 import mongoose, { mongo } from "mongoose";
 import { Request, Response } from "express";
-import model from "./order.model"; // Adjust the import path as necessary
+import model from "./order.model.js"; // Adjust the import path as necessary
 
 const create = async (req: Request, res: Response) => {
   try {

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { variantZodSchema } from "../variant/variant.validate";
+import { variantZodSchema } from "../variant/variant.validate.js";
 
 export const productZodSchema = z.object({
   _id: z.string().optional(),

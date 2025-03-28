@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import config from "../config";
-import { IUser } from "@/modules/user/model";
+import config from "../config/index.js";
+import { IUser } from "../modules/user/user.model.js";
 export interface IGetUserAuthInfoRequest extends Request {
   user?: IUser;
 }
@@ -19,15 +19,15 @@ const authenticateJWT = (
 
   jwt.verify(token, config.jwtSecret, (err, decoded) => {
     if (err) {
-      return res.status(401).json({ message: "Invalid or expired token." });
+      res.status(401).json({ message: "Invalid or expired token." });
+      return;
     }
 
     if (decoded && typeof decoded !== "string") {
-      console.log(decoded);
-
       req.user = decoded as IUser;
     } else {
-      return res.status(401).json({ message: "Invalid token payload." });
+      res.status(401).json({ message: "Invalid token payload." });
+      return;
     }
 
     next();

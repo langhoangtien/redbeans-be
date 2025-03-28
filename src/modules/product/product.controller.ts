@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 import { Request, Response } from "express";
-import model from "./product.model";
+import model from "./product.model.js";
 
-import VariantModel, { IVariant } from "../variant/variant.model";
+import VariantModel, { IVariant } from "../variant/variant.model.js";
 
 interface VariantOption {
   name: string;
@@ -165,7 +165,8 @@ const getAll = async (req: Request, res: Response) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("variants"),
+        .populate("variants")
+        .select("-description"),
       model.countDocuments(query),
     ]);
     res.json({

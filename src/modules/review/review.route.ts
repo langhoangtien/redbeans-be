@@ -1,8 +1,8 @@
 import express from "express";
 const reviewRouter = express.Router();
-import controller from "./review.controller";
-import { validateSchema } from "@/utilities";
-import { reviewSchema, updateReviewSchema } from "./review.validate";
+import controller from "./review.controller.js";
+import { validateSchema } from "../../utilities/index.js";
+import { reviewSchema, updateReviewSchema } from "./review.validate.js";
 
 reviewRouter.get("/", controller.getAll);
 reviewRouter.post("/", validateSchema(reviewSchema), controller.create);

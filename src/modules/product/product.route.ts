@@ -1,8 +1,11 @@
 import express from "express";
 const productRouter = express.Router();
-import controller from "./product.controller";
-import { validateSchema } from "@/utilities";
-import { productZodSchema, updateProductZodSchema } from "./product.validate";
+import controller from "./product.controller.js";
+import { validateSchema } from "../../utilities/index.js";
+import {
+  productZodSchema,
+  updateProductZodSchema,
+} from "./product.validate.js";
 
 productRouter.get("/", controller.getAll);
 productRouter.post("/", validateSchema(productZodSchema), (req, res) => {

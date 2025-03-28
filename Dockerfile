@@ -33,7 +33,7 @@ COPY package.json package-lock.json ./
 RUN npm install --production
 
 # Copy các file đã biên dịch từ giai đoạn builder
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/build ./build
 
 # Copy các file cần thiết khác (nếu có, ví dụ: file .env hoặc static files)
 COPY .env ./
@@ -42,4 +42,4 @@ COPY .env ./
 EXPOSE 3000
 
 # Lệnh khởi chạy ứng dụng
-CMD ["node", "dist/index.js"]
+CMD ["node", "build/src/main.js"]

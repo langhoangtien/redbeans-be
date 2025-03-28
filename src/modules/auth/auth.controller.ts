@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import User, { IUser } from "../user/model";
-import config from "@/config";
+import User, { IUser } from "../user/user.model.js";
+import config from "../../config/index.js";
 import jwt from "jsonwebtoken";
-import { comparePassword } from "@/utilities";
+import { comparePassword } from "../../utilities/index.js";
 
 const login = async (req: Request, res: Response) => {
   const { username, password } = req.body;

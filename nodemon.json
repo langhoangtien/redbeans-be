@@ -1,8 +1,8 @@
 {
-  "watch": ["src"],
+  "watch": ["build", "src"],
   "ext": ".ts,.js",
   "ignore": ["src/**/*.spec.ts", "src/**/*.test.ts"],
-  "exec": "node -r ts-node/register -r tsconfig-paths/register src/index.ts",
+  "exec": "node -r ts-node/register -r tsconfig-paths/register build/src/main.js",
   "legacyWatch": true,
   "delay": "1000",
   "polling": true

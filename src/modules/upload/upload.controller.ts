@@ -12,7 +12,7 @@ const LIMIT_SIZE = 2 * 1024 * 1024; // 2MB
 export const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: LIMIT_SIZE }, // 500KB
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_req, file, cb) => {
     const allowedMimeTypes = [
       "image/jpeg",
       "image/png",

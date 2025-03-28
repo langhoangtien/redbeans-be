@@ -1,8 +1,8 @@
 import express from "express";
 const orderRouter = express.Router();
-import controller from "./order.controller";
-import { validateSchema } from "@/utilities";
-import { orderSchema, updateOrderSchema } from "./order.validate";
+import controller from "./order.controller.js";
+import { validateSchema } from "../../utilities/index.js";
+import { orderSchema, updateOrderSchema } from "./order.validate.js";
 
 orderRouter.get("/", controller.getAll);
 orderRouter.post("/", validateSchema(orderSchema), controller.create);

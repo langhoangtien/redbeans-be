@@ -1,4 +1,4 @@
-import { Document, Model, model, ObjectId, Schema } from "mongoose";
+import { Document, Model, model, Schema } from "mongoose";
 
 // --- Định nghĩa các hằng số enum cho trạng thái đơn hàng và phương thức thanh toán ---
 export const OrderStatus = {
@@ -161,6 +161,10 @@ const orderSchema = new Schema(
       ref: "User",
     },
     paypalOrderId: {
+      type: String,
+      default: null,
+    },
+    paymentId: {
       type: String,
       default: null,
     },

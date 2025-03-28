@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import axios from "axios";
-import config from "@/config";
+import config from "../../config/index.js";
 const { paypalClientId, paypalClientSecret, paypalApi } = config;
 async function getAccessToken() {
   try {
@@ -23,7 +23,7 @@ async function getAccessToken() {
     return null;
   }
 }
-async function generateClientToken(req: Request, res: Response) {
+async function generateClientToken(_req: Request, res: Response) {
   try {
     // 1️⃣ Lấy access token từ PayPal
 
@@ -53,6 +53,8 @@ async function generateClientToken(req: Request, res: Response) {
 }
 export async function createOrder(req: Request, res: Response) {
   try {
+    console.log("Create order");
+
     const accessToken = await getAccessToken();
     const { paypalApi } = config;
     const { amount, currency, billingAddress } = req.body;
@@ -93,6 +95,8 @@ export async function createOrder(req: Request, res: Response) {
 }
 
 export async function captureOrder(req: Request, res: Response) {
+  console.log("Capture order");
+
   try {
     const { orderID } = req.body;
     const accessToken = await getAccessToken();

@@ -1,21 +1,5 @@
 import { model, Schema } from "mongoose";
 
-interface ReviewDocument {
-  id: number;
-  productId: string;
-  customer: string;
-  title: string;
-  body: string;
-  rating: number;
-  images: string[];
-  videos: string[];
-  reply?: string;
-  repliedAt?: Date;
-  isVerified: boolean;
-  country?: string;
-  liked: number;
-  purchaseVerified: boolean;
-}
 const reviewSchema = new Schema(
   {
     productId: { type: String, required: true },
