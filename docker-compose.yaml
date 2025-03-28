@@ -1,0 +1,44 @@
+services:
+  mongo:
+    image: mongo:8.0.4
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${DATABASE_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "${DATABASE_PORT}:27017"
+
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    environment:
+      REDIS_ARGS: "--requirepass ${REDIS_PASSWORD}"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${APP_PORT}:${APP_PORT}"
+    depends_on:
+      - mongo
+      - redis
+    environment:
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_PORT: ${DATABASE_PORT}
+      MONGO_URI: mongodb://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@mongo:27017/mydatabase
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+    volumes:
+      - ./uploads:/app/dist/uploads
+
+volumes:
+  mongo-data:
+  redis_data:
