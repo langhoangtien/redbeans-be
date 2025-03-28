@@ -3,7 +3,7 @@ dotenv.config();
 
 // Cấu hình ứng dụng
 export default {
-  port: process.env.PORT || 3000,
+  port: process.env.APP_PORT || 4201,
   dbUser: process.env.DATABASE_USERNAME,
   dbPassword: process.env.DATABASE_PASSWORD,
   dbPort: process.env.DATABASE_PORT || 27017,
