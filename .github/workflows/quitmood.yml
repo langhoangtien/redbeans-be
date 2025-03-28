@@ -1,0 +1,29 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - quitmood # Chạy khi có thay đổi trên nhánh chính (quitmood)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout mã nguồn từ GitHub repository
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Cấu hình SSH để kết nối với VPS
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }} # Đảm bảo thêm SSH private key vào GitHub Secrets
+
+      # Deploy lên VPS
+      - name: Deploy to VPS
+        run: |
+          echo "Deploying to VPS..."
+          ssh -o StrictHostKeyChecking=no root@$VPS_IP "cd /var/www/quitmood-be && git pull && docker-compose down && docker-compose up --build -d && docker-compose logs -f"
+        env:
+          VPS_IP: ${{ secrets.VPS_IP }} # Địa chỉ IP của VPS từ GitHub Secrets
