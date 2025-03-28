@@ -152,7 +152,6 @@ const getFile = async (req: Request, res: Response) => {
     res.sendFile(filePath, (err) => {
       if (err) {
         console.log("filePath", filePath);
-        console.log("errX", err);
 
         res.status(500).json({ error: "Error sending file" });
         return;

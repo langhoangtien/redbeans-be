@@ -5,7 +5,6 @@ import { Request, Response } from "express";
 
 const categoryController = baseController(Category);
 const test = async (req: Request, res: Response) => {
-  console.log("Test");
   res.json({
     message: "Test successful",
     timestamp: new Date().toISOString(),
