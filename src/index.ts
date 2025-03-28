@@ -1,3 +1,4 @@
+import "module-alias/register";
 import mongoose from "mongoose";
 import config from "./config";
 import app from "./app";
