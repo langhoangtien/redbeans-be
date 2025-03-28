@@ -1,4 +1,3 @@
-import { nullable } from "@paypal/paypal-server-sdk/dist/types/schema";
 import { model, Schema } from "mongoose";
 
 interface ReviewDocument {

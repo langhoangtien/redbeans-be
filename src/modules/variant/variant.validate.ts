@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const baseVariantSchema = z.object({
+export const variantZodSchema = z.object({
   attributes: z
     .array(
       z.object({
@@ -10,11 +10,11 @@ const baseVariantSchema = z.object({
     )
     .default([]), // ✅ Mặc định là mảng rỗng
 
-  price: z.number().nonnegative(),
+  price: z.number().nonnegative().optional().default(0),
 
-  salePrice: z.number().nonnegative().optional(),
+  compareAtPrice: z.number().nonnegative().optional(),
 
-  image: z.string().min(2).max(200).optional(),
+  image: z.string().max(200).optional().default(""),
 
   stock: z.number().int().nonnegative(),
 
@@ -22,15 +22,9 @@ const baseVariantSchema = z.object({
 });
 
 // ✅ Áp dụng .refine() sau khi tách schema cơ bản
-export const variantZodSchema = baseVariantSchema.refine(
-  (data) => data.salePrice === undefined || data.salePrice <= data.price,
-  {
-    message: "Sale price must be less than price",
-    path: ["salePrice"],
-  }
-);
 
 // ✅ Sử dụng .partial() trên base schema
-export const updateVariantSchema = baseVariantSchema.partial();
+
+export const updateVariantSchema = variantZodSchema.partial();
 
 export type VariantInput = z.infer<typeof variantZodSchema>;

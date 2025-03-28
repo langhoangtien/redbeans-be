@@ -8,7 +8,7 @@ export interface IProduct extends Document {
   image?: string;
   images?: string[]; // Mảng URL ảnh
   minPrice?: number;
-  minSalePrice?: number;
+  minCompareAtPrice?: number;
   variantOptions: Record<string, string[]>;
   variants: string[];
 }
@@ -18,7 +18,7 @@ const productSchema = new Schema<IProduct>(
     name: {
       type: String,
       required: true,
-      minLength: 2,
+      minLength: 1,
       maxLength: 200,
       index: true,
     },
@@ -29,7 +29,7 @@ const productSchema = new Schema<IProduct>(
       type: String,
       required: true,
       unique: true,
-      minLength: 2,
+      minLength: 1,
       maxLength: 100,
       index: true,
     },
@@ -39,7 +39,7 @@ const productSchema = new Schema<IProduct>(
     },
     image: {
       type: String,
-      minLength: 1,
+      default: "",
       maxLength: 100,
     },
     images: {
@@ -51,7 +51,7 @@ const productSchema = new Schema<IProduct>(
       default: 0,
       min: 0,
     },
-    minSalePrice: {
+    minCompareAtPrice: {
       type: Number,
       default: 0,
       min: 0,

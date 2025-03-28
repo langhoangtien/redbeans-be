@@ -62,6 +62,7 @@ const getAll = async (req: Request, res: Response) => {
       query.$or = [
         { username: { $regex: search, $options: "i" } }, // Không phân biệt hoa thường
         { email: { $regex: search, $options: "i" } },
+        { fullName: { $regex: search, $options: "i" } },
       ];
     }
 

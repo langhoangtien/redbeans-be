@@ -113,4 +113,30 @@ const findOne = async (req: Request, res: Response) => {
   }
 };
 
-export default { create, getAll, update, remove, findOne };
+const deleteMany = async (req: Request, res: Response) => {
+  const { ids } = req.body;
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    res.status(400).json({ message: "Invalid IDs format" });
+    return;
+  }
+  if (!ids.every((id: any) => mongoose.Types.ObjectId.isValid(id))) {
+    res.status(400).json({ message: "One or more IDs are invalid" });
+    return;
+  }
+  try {
+    const deletedDocs = await model.deleteMany({ _id: { $in: ids } });
+
+    if (deletedDocs.deletedCount === 0) {
+      res.status(404).json({ message: "Document not found" });
+      return;
+    }
+
+    res.json({ message: "Documents deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting documents:", error);
+    res.status(500).json({ message: "Server error" });
+    return;
+  }
+};
+export default { create, getAll, update, remove, findOne, deleteMany };

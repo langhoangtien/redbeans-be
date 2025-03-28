@@ -25,6 +25,11 @@ export interface IOrderItem {
   name: string;
   variantId: string; // Tham chiếu trực tiếp đến Variant
   price: number; // Giá của sản phẩm tại thời điểm đặt hàng
+  productId: string; // Tham chiếu trực tiếp đến Product
+  attributes?: {
+    name: string;
+    value: string;
+  }[]; // Các thuộc tính của sản phẩm
 }
 
 // --- Interface cho Order ---
@@ -35,8 +40,7 @@ export interface IOrder extends Document {
   user?: Schema.Types.ObjectId; // Tham chiếu đến người dùng (nếu có)
   status: OrderStatusType;
   paymentMethod: PaymentMethodType;
-  stripePaymentIntentId?: string; // ID của payment intent trên Stripe
-  paypalOrderId?: string; // ID của đơn hàng trên PayPal
+  paymentId?: string; // ID của đơn hàng trên PayPal
   trackingNumber?: string; // Mã vận đơn
   logisticPartner?: string; // Đơn vị vận chuyển
   isSendEmail?: boolean; // Đã gửi email thông báo cho khách hàng
@@ -57,6 +61,14 @@ export interface IShippingDetails {
   postalCode: string;
   country: string;
 }
+const AttributesSchmea = new Schema({
+  name: {
+    type: String,
+  },
+  value: {
+    type: String,
+  },
+});
 // --- Schema cho từng Order Item ---
 const orderItemSchema = new Schema({
   name: {
@@ -84,37 +96,33 @@ const orderItemSchema = new Schema({
     type: Number,
     required: true,
   },
+  attributes: [AttributesSchmea],
 });
 
 const ShippingDetailsSchema = new Schema({
   fullName: {
     type: String,
-    required: true,
   },
   phone: {
     type: String,
   },
   address: {
     type: String,
-    required: true,
   },
   address2: {
     type: String,
   },
   city: {
     type: String,
-    required: true,
   },
   state: {
     type: String,
   },
   postalCode: {
     type: String,
-    required: true,
   },
   country: {
     type: String,
-    required: true,
   },
 });
 // --- Schema cho Order ---
@@ -183,11 +191,9 @@ const orderSchema = new Schema(
 
     shippingAddress: {
       type: ShippingDetailsSchema,
-      required: true,
     },
     billingAddress: {
       type: ShippingDetailsSchema,
-      required: true,
     },
   },
   { timestamps: true, versionKey: false }

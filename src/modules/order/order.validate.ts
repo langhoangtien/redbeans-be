@@ -19,6 +19,14 @@ const orderItemSchema = z.object({
   variantId: z.string().min(1, { message: "Variant ID is required" }), // Giả sử ID được truyền dưới dạng chuỗi
   name: z.string().max(200, { message: "Name must not exceed 200 characters" }),
   productId: z.string().min(1, { message: "Product ID is required" }),
+  attributes: z
+    .array(
+      z.object({
+        name: z.string().max(200),
+        value: z.string().max(200),
+      })
+    )
+    .optional(),
   quantity: z
     .number()
     .int({ message: "Quantity must be an integer" })
@@ -47,31 +55,32 @@ export const orderSchema = z.object({
   logisticPartner: z.string().optional(),
   isSendEmail: z.boolean().optional(),
   name: z.string().optional(),
+  paymentId: z.string().max(100).optional(),
 
   // Nếu có user, có thể là string id (tùy vào cách bạn xử lý ObjectId)
   user: z.string().optional(),
   shippingAddress: z
     .object({
-      fullName: z.string().min(1).max(200),
-      address: z.string().min(1).max(200),
+      fullName: z.string().max(200),
+      address: z.string().max(200),
       address2: z.string().max(200).optional(),
-      city: z.string().min(1).max(200),
+      city: z.string().max(200),
       state: z.string().max(200).optional(),
-      postalCode: z.string().min(1).max(200),
-      country: z.string().min(2).max(2),
-      phone: z.string().min(7).max(15).optional(),
+      postalCode: z.string().max(200),
+      country: z.string().max(2),
+      phone: z.string().max(15).optional(),
     })
     .optional(),
   billingAddress: z
     .object({
-      fullName: z.string().min(1).max(200),
-      phone: z.string().min(7).max(15).optional(),
-      address: z.string().min(1).max(200),
+      fullName: z.string().max(200),
+      phone: z.string().max(15).optional(),
+      address: z.string().max(200),
       address2: z.string().max(200).optional(),
-      city: z.string().min(1).max(200),
+      city: z.string().max(200),
       state: z.string().max(200).optional(),
-      postalCode: z.string().min(1).max(200),
-      country: z.string().min(2).max(2),
+      postalCode: z.string().max(200),
+      country: z.string().max(2),
     })
     .optional(),
   status: OrderStatusEnum,

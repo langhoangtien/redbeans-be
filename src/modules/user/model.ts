@@ -4,6 +4,7 @@ export interface IUser {
   password: string;
   email: string;
   fullName: string;
+  image?: string;
 }
 
 const userSchema = new mongoose.Schema(
@@ -14,6 +15,10 @@ const userSchema = new mongoose.Schema(
       unique: true,
       minLength: 3,
       maxLength: 20,
+    },
+    image: {
+      type: String,
+      maxLength: 200,
     },
     password: {
       type: String,

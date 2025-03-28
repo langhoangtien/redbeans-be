@@ -3,7 +3,6 @@ import { Request, Response } from "express";
 import model from "./review.model"; // Adjust the import path as necessary
 
 const create = async (req: Request, res: Response) => {
-  console.log("XXX2");
   try {
     const newModel = new model(req.body);
     const newDoc = await newModel.save();
@@ -17,7 +16,6 @@ const create = async (req: Request, res: Response) => {
       return;
     }
     console.error("Error creating document:", error);
-    console.log("XXX2", error);
 
     res.status(500).json({ message: "Server error" });
     return;
@@ -29,13 +27,38 @@ const getAll = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const productId = req.query.productId as string;
+    const rating = parseInt(req.query.rating as string);
+    const purchaseVerified = req.query.purchaseVerified === "true";
+    const hasMedia = req.query.hasMedia === "true";
+    const sortLiked = req.query.sortLiked;
+    const sortCreatedAt = req.query.sortCreatedAt;
 
     const skip = (page - 1) * limit;
-    const filter = productId ? { productId } : {};
+    const filter: any = {};
+
+    if (productId) filter.productId = productId;
+    if (!isNaN(rating)) filter.rating = rating;
+    if (req.query.purchaseVerified !== undefined)
+      filter.purchaseVerified = purchaseVerified;
+    if (hasMedia)
+      filter.$or = [
+        { images: { $exists: true, $not: { $size: 0 } } },
+        { videos: { $exists: true, $not: { $size: 0 } } },
+      ];
+
+    // Sắp xếp
+    let sort: any = { createdAt: -1 }; // Mặc định sắp xếp theo ngày mới nhất
+
+    if (sortCreatedAt) {
+      sort = { createdAt: sortCreatedAt === "desc" ? -1 : 1 };
+    }
+    if (sortLiked) {
+      sort = { liked: sortLiked === "desc" ? -1 : 1 };
+    }
 
     // Chạy song song để tối ưu hiệu suất
     const [docs, totalDocs] = await Promise.all([
-      model.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      model.find(filter).sort(sort).skip(skip).limit(limit),
       model.countDocuments(filter),
     ]);
 
@@ -53,6 +76,7 @@ const getAll = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 const update = async (req: Request, res: Response) => {
   const { id } = req.params;
   if (!mongoose.Types.ObjectId.isValid(id)) {

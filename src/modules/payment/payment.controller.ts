@@ -90,12 +90,10 @@ const createOrder = async (req: Request, res: Response): Promise<any> => {
     // Duyệt qua từng sản phẩm trong giỏ hàng
     for (const item of cart.products) {
       // Tìm sản phẩm theo slug
-      console.log("itemXXX", item);
 
       const product = await Variant.findById(item.id).populate<{
         productId: IProduct & { _id: ObjectId };
       }>("productId");
-      console.log("productYYY", product);
 
       if (!product) {
         res
@@ -109,14 +107,14 @@ const createOrder = async (req: Request, res: Response): Promise<any> => {
         quantity: item.quantity,
         attributes: product.attributes,
         variantId: item.id,
-        productId: product.productId._id,
-        price: product.salePrice,
+        productId: product.productId._id.toString(),
+        price: product.price,
         name: product.productId.name, // Tránh lỗi Property 'name' does not exist
       };
 
       products.push(data);
       // Tính tổng tiền dựa trên giá của biến thể và số lượng
-      total += (product.salePrice || 0) * item.quantity;
+      total += (product.price || 0) * item.quantity;
     }
 
     cartClone.amount = total.toFixed(2);
@@ -172,11 +170,12 @@ const createOrder = async (req: Request, res: Response): Promise<any> => {
       return;
     }
     const newOrder = new Order({
-      paypalOrderId: response.id, // ID từ PayPal
+      paymentId: response.id, // ID từ PayPal
       userId: req.user?.id, // Nếu có user login
       products: products,
       total: total,
       email: cart.email,
+      name: cart.shippingAddress.fullName,
       billingAddress: cart.billingAddress,
       shippingAddress: cart.shippingAddress,
       paymentMethod: "paypal",
@@ -191,7 +190,6 @@ const createOrder = async (req: Request, res: Response): Promise<any> => {
       res.status(500).json({ message: error.message });
       return;
     }
-    console.log("XXX", error);
 
     res.status(500).json({ message: "Internal Server Error" });
     return;
@@ -213,7 +211,7 @@ const captureOrder = async (req: Request, res: Response): Promise<any> => {
       return;
     }
     await Order.findOneAndUpdate(
-      { paypalOrderId: id }, // Tìm đơn hàng theo PayPal ID
+      { paymentId: id }, // Tìm đơn hàng theo PayPal ID
       { status: "COMPLETE" } // Đánh dấu là đã thanh toán
     );
     res.json(response);

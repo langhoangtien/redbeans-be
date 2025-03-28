@@ -4,7 +4,7 @@ export interface IVariant extends Document {
   productId: Schema.Types.ObjectId; // Tham chiếu đến Product
   attributes?: { name: string; value: string }[]; // Ví dụ: { color: "red", size: "M" }
   price: number;
-  salePrice: number;
+  compareAtPrice: number;
   image: string;
   stock: number; // Số lượng tồn kho hiện tại của biến thể
   sku?: string;
@@ -28,21 +28,16 @@ const variantSchema = new Schema<IVariant>(
       required: true,
       min: 0,
     },
-    salePrice: {
+    compareAtPrice: {
       type: Number,
       required: true,
       default: 0,
-      validate: {
-        validator: function (this: IVariant, value: number) {
-          return value <= this.price;
-        },
-        message: "Sale price phải nhỏ hơn price.",
-      },
+      min: 0,
     },
     image: {
       type: String,
-      minLength: 2,
       maxLength: 200,
+      default: "",
     },
     stock: {
       type: Number,

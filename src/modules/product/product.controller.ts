@@ -8,19 +8,19 @@ interface VariantOption {
   name: string;
   values: string[];
 }
-const getMinPrice = (variants: { price: number; salePrice: number }[]) => {
-  if (variants.length === 0) return { minPrice: 0, minSalePrice: 0 };
+const getMinPrice = (variants: { price: number; compareAtPrice: number }[]) => {
+  if (variants.length === 0) return { minPrice: 0, compareAtPrice: 0 };
   let minPrice = variants[0].price;
-  let minSalePrice = variants[0].salePrice;
+  let minCompareAtPrice = variants[0].compareAtPrice;
   for (let i = 1; i < variants.length; i++) {
     if (variants[i].price < minPrice) {
       minPrice = variants[i].price;
     }
-    if (variants[i].salePrice < minSalePrice) {
-      minSalePrice = variants[i].salePrice;
+    if (variants[i].compareAtPrice < minCompareAtPrice) {
+      minCompareAtPrice = variants[i].compareAtPrice;
     }
   }
-  return { minPrice, minSalePrice };
+  return { minPrice, minCompareAtPrice };
 };
 const generateVariantCombinations = (
   variantOptions: VariantOption[]
@@ -57,7 +57,7 @@ const compareVariant = (
       (v: {
         attributes?: { name: string; value: string }[];
         price?: number;
-        salePrice?: number;
+        compareAtPrice?: number;
         stock?: number;
         sku?: string;
       }) =>
@@ -72,7 +72,7 @@ const compareVariant = (
     return {
       attributes: expectedVariant,
       price: matchedVariant?.price ?? 0,
-      salePrice: matchedVariant?.salePrice ?? 0,
+      compareAtPrice: matchedVariant?.compareAtPrice ?? 0,
       stock: matchedVariant?.stock ?? 0,
       sku: matchedVariant?.sku ?? "",
       productId,
@@ -105,7 +105,7 @@ const create = async (req: Request, res: Response) => {
 
     const finalVariants = compareVariant(userVariants, variantOptions);
     // Tính toán giá thấp nhất từ các biến thể
-    const { minPrice, minSalePrice } = getMinPrice(finalVariants);
+    const { minPrice, minCompareAtPrice } = getMinPrice(finalVariants);
     const newProduct = new model({
       name: parsedData.name,
       description: parsedData.description,
@@ -114,7 +114,7 @@ const create = async (req: Request, res: Response) => {
       categories: parsedData.categories,
       images: parsedData.images,
       minPrice,
-      minSalePrice,
+      minCompareAtPrice,
       variantOptions,
     });
 
@@ -215,8 +215,13 @@ const update = async (req: Request, res: Response) => {
           return existingVariant.save();
         })
       );
-      const { minPrice, minSalePrice } = getMinPrice(updatedVariants as any);
-      Object.assign(existingProduct, cloneUpdate, { minPrice, minSalePrice });
+      const { minPrice, minCompareAtPrice } = getMinPrice(
+        updatedVariants as any
+      );
+      Object.assign(existingProduct, cloneUpdate, {
+        minPrice,
+        minCompareAtPrice,
+      });
       const updatedProduct = await existingProduct.save();
       res.json({
         message: "Product updated successfully",
@@ -246,7 +251,7 @@ const update = async (req: Request, res: Response) => {
       }
 
       const uniqueVariants = compareVariant(userVariants, variantOptions, id);
-      const { minPrice, minSalePrice } = getMinPrice(uniqueVariants);
+      const { minPrice, minCompareAtPrice } = getMinPrice(uniqueVariants);
       // Xóa variants cũ
       await VariantModel.deleteMany({ productId: id });
 
@@ -260,7 +265,7 @@ const update = async (req: Request, res: Response) => {
       // Cập nhật danh sách variants mới vào sản phẩm
       existingProduct.variants = newVariants.map((v) => v._id.toString());
       existingProduct.minPrice = minPrice;
-      existingProduct.minSalePrice = minSalePrice;
+      existingProduct.minCompareAtPrice = minCompareAtPrice;
     }
 
     // Lưu sản phẩm sau khi cập nhật
@@ -301,21 +306,28 @@ const remove = async (req: Request, res: Response) => {
 
 const findOne = async (req: Request, res: Response) => {
   const { id } = req.params;
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    res.status(400).json({ message: "Invalid ID format" });
-    return;
-  }
+
   try {
-    const doc = await model.findById(id).populate("variants");
+    let query;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      // Nếu ID hợp lệ, tìm theo ID
+      query = { _id: id };
+    } else {
+      // Nếu không phải ObjectId, giả sử đó là slug
+      query = { slug: id };
+    }
+
+    const doc = await model.findOne(query).populate("variants");
+
     if (!doc) {
       res.status(404).json({ message: "Document not found" });
       return;
     }
+
     res.json(doc);
   } catch (error) {
     console.error("Error fetching document:", error);
     res.status(500).json({ message: "Server error" });
-    return;
   }
 };
 
