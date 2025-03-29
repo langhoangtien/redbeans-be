@@ -28,7 +28,7 @@ export const upload = multer({
   },
 });
 
-const sizes = [100, 250, 400, 800, 1500];
+const sizes = [100, 250, 400, 800];
 const outputDir = "uploads";
 
 const ensureDirExists = (dir: string) => {
