@@ -25,11 +25,24 @@ const getAll = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
+    const search = (req.query.search as string)?.trim() || "";
     const skip = (page - 1) * limit;
 
-    const docs = await model.find().skip(skip).limit(limit);
+    let query: any = {};
+    if (search) {
+      query.$or = [
+        { email: { $regex: search, $options: "i" } }, // Không phân biệt hoa thường
+        { name: { $regex: search, $options: "i" } },
+      ];
+    }
 
-    const totalDocs = await model.countDocuments();
+    const docs = await model
+      .find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalDocs = await model.countDocuments(query);
     res.json({
       data: docs,
       pagination: {
