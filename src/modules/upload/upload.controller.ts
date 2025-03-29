@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from "uuid";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 
-const LIMIT_SIZE = 2 * 1024 * 1024; // 2MB
+const LIMIT_SIZE = 5 * 1024 * 1024; // 2MB
 // Cấu hình Multer để upload file
 export const upload = multer({
   storage: multer.memoryStorage(),
@@ -18,16 +18,17 @@ export const upload = multer({
       "image/png",
       "image/webp",
       "image/jpg",
+      "image/avif",
     ];
     if (allowedMimeTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Chỉ hỗ trợ định dạng JPEG, PNG, WEBP"));
+      cb(new Error("Chỉ hỗ trợ định dạng JPEG, PNG, WEBP, JPG, AVIF max 5MB!"));
     }
   },
 });
 
-const sizes = [100, 250, 400, 800];
+const sizes = [100, 250, 400, 800, 1500];
 const outputDir = "uploads";
 
 const ensureDirExists = (dir: string) => {

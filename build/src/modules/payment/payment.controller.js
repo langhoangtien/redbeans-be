@@ -49,19 +49,19 @@ const createOrder = async (req, res) => {
             // Tính tổng tiền dựa trên giá của biến thể và số lượng
             totalWithoutTax += (product.price || 0) * item.quantity;
         }
-        const total = totalWithoutTax *
+        const total = (totalWithoutTax *
             (1 +
-                calculateTax(cart.shippingAddress.country, cart.shippingAddress.state || ""));
+                calculateTax(cart.shippingAddress.country, cart.shippingAddress.state || ""))).toFixed(2);
         console.log("TOTAL", total, "TOTAL_WITHOUT_TAX", totalWithoutTax);
-        cartClone.amount = total.toFixed(2);
+        cartClone.amount = total;
         const purchase = {
             amount: {
                 currencyCode: "USD",
-                value: total.toFixed(2),
+                value: total,
                 breakdown: {
                     itemTotal: {
                         currencyCode: "USD",
-                        value: total.toFixed(2),
+                        value: total,
                     },
                 },
             },
