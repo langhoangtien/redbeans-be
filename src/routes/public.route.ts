@@ -7,9 +7,12 @@ import productController from "../modules/product/product.controller.js";
 import uploadRouter from "../modules/upload/upload.route.js";
 import uploadController from "../modules/upload/upload.controller.js";
 import reviewController from "../modules/review/review.controller.js";
+import blogController from "../modules/blog/blog.controller.js";
 
 const router = express.Router();
 router.get("/posts", postController.getAll);
+router.get("/blogs", blogController.getAll);
+router.get("/blogs/:id", blogController.findOne);
 router.use("/uploads", uploadRouter);
 router.get("/reviews", reviewController.getAll);
 router.get("/files/:id", uploadController.getFile);

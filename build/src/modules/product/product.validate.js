@@ -4,6 +4,7 @@ export const productZodSchema = z.object({
     _id: z.string().optional(),
     name: z.string().min(1).max(200),
     description: z.string().optional(),
+    introduction: z.string().max(1000).optional(),
     image: z.string().max(200).optional(),
     slug: z.string().min(1).max(100),
     categories: z.array(z.string()).optional().default([]),

@@ -8,6 +8,7 @@ import postRouter from "../modules/post/post.route.js";
 import productRouter from "../modules/product/product.route.js";
 import orderRouter from "../modules/order/order.route.js";
 import reviewRouter from "../modules/review/review.route.js";
+import blogRouter from "../modules/blog/blog.route.js";
 router.use("/categories", categoryRouter);
 // router.use("/uploads", uploadRouter);
 router.use("/users", userRouter);
@@ -16,5 +17,6 @@ router.use("/auth", authRouter);
 router.use("/products", productRouter);
 router.use("/orders", orderRouter);
 router.use("/reviews", reviewRouter);
+router.use("/blogs", blogRouter);
 
 export default router;
