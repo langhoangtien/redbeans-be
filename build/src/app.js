@@ -8,8 +8,22 @@ const app = express();
 //   console.log(`Request Path: ${req.path}`);
 //   next();
 // });
+const allowedOrigins = [
+    "http://localhost:3001",
+    "https://quitmood.net",
+    "http://localhost:5173",
+];
+console.log("Allowed origins2:", allowedOrigins);
 app.use(cors({
-    origin: "*", // Cho phép tất cả domain
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        }
+        else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
+    credentials: true,
 }));
 app.use(express.json());
 app.use("/", publicRouter);
