@@ -16,7 +16,6 @@ const allowedOrigins = [
   "https://optilifecompany.com",
   "http://localhost:5173",
 ];
-console.log("Allowed origins2:", allowedOrigins);
 
 app.use(
   cors({
@@ -27,7 +26,6 @@ app.use(
         callback(new Error("Not allowed by CORS"));
       }
     },
-    credentials: true,
   })
 );
 
