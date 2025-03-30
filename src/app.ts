@@ -13,9 +13,9 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:3001",
   "https://quitmood.net",
+  "https://optilifecompany.com",
   "http://localhost:5173",
 ];
-console.log("Allowed origins2:", allowedOrigins);
 
 app.use(
   cors({
