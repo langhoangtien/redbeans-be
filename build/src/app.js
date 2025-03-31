@@ -4,6 +4,8 @@ import express from "express";
 import publicRouter from "./routes/public.route.js";
 import cors from "cors";
 const app = express();
+app.use(express.json({ limit: "10mb" })); // Cho phép request tối đa 10MB
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // app.use((req, res, next) => {
 //   console.log(`Request Path: ${req.path}`);
 //   next();

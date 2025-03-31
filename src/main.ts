@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import config from "./config/index.js";
 import app from "./app.js";
+import redis from "./services/redis.js";
 
 mongoose
   .connect(config.dbUri, {
@@ -19,3 +20,5 @@ mongoose
   .catch((err) => {
     console.log("Error connecting to database", err);
   });
+
+export { redis };

@@ -23,6 +23,7 @@ export type PaymentMethodType =
 export interface IOrderItem {
   quantity: number;
   name: string;
+  image?: string; // Hình ảnh của sản phẩm
   variantId: string; // Tham chiếu trực tiếp đến Variant
   price: number; // Giá của sản phẩm tại thời điểm đặt hàng
   productId: string; // Tham chiếu trực tiếp đến Product
@@ -85,7 +86,9 @@ const orderItemSchema = new Schema({
     ref: "Product",
     required: true,
   },
-
+  image: {
+    type: String,
+  },
   quantity: {
     type: Number,
     required: true,
