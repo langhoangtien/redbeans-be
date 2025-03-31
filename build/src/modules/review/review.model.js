@@ -2,6 +2,7 @@ import { model, Schema } from "mongoose";
 const reviewSchema = new Schema({
     productId: { type: String, required: true },
     customer: { type: String, required: true },
+    email: { type: String },
     title: { type: String },
     body: { type: String, required: true },
     rating: { type: Number, required: true, min: 1, max: 5 },

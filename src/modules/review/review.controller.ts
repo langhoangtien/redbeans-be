@@ -25,13 +25,14 @@ const create = async (req: Request, res: Response) => {
 const getAll = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
+    const search = (req.query.search as string)?.trim() || "";
     const limit = parseInt(req.query.limit as string) || 10;
     const productId = req.query.productId as string;
     const rating = parseInt(req.query.rating as string);
     const purchaseVerified = req.query.purchaseVerified === "true";
     const hasMedia = req.query.hasMedia === "true";
-    const sortLiked = req.query.sortLiked;
-    const sortCreatedAt = req.query.sortCreatedAt;
+    const sortBy = (req.query.sortBy as string) || "createdAt"; // Mặc định sắp xếp theo ngày tạo
+    const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
 
     const skip = (page - 1) * limit;
     const filter: any = {};
@@ -46,19 +47,22 @@ const getAll = async (req: Request, res: Response) => {
         { videos: { $exists: true, $not: { $size: 0 } } },
       ];
 
+    if (search) {
+      filter.$or = [
+        { customer: { $regex: search, $options: "i" } },
+        { title: { $regex: search, $options: "i" } },
+      ];
+    }
     // Sắp xếp
-    let sort: any = { createdAt: -1 }; // Mặc định sắp xếp theo ngày mới nhất
-
-    if (sortCreatedAt) {
-      sort = { createdAt: sortCreatedAt === "desc" ? -1 : 1 };
-    }
-    if (sortLiked) {
-      sort = { liked: sortLiked === "desc" ? -1 : 1 };
-    }
+    console.log("sortBy", sortBy, "sortOrder", sortOrder);
 
     // Chạy song song để tối ưu hiệu suất
     const [docs, totalDocs] = await Promise.all([
-      model.find(filter).sort(sort).skip(skip).limit(limit),
+      model
+        .find(filter)
+        .sort({ [sortBy]: sortOrder })
+        .skip(skip)
+        .limit(limit),
       model.countDocuments(filter),
     ]);
 
@@ -188,6 +192,42 @@ const bulkCreate = async (req: Request, res: Response) => {
     return;
   }
 };
+
+const createClientReview = async (req: Request, res: Response) => {
+  try {
+    const { productId, title, rating, customer, email, body } = req.body;
+    const createdAt = new Date();
+    const updatedAt = new Date();
+    const data = {
+      productId,
+      title,
+      rating,
+      customer,
+      createdAt,
+      updatedAt,
+      body,
+      email,
+    };
+    console.log("data", data);
+
+    const newModel = new model(data);
+    const newDoc = await newModel.save();
+    res.status(201).json(newDoc);
+  } catch (error: any) {
+    if (error instanceof mongo.MongoServerError && error.code === 11000) {
+      const duplicateKey = Object.keys(error.keyValue)[0];
+      res.status(400).json({
+        message: `${duplicateKey} already exists: ${error.keyValue[duplicateKey]}`,
+      });
+      return;
+    }
+    console.error("Error creating document:", error);
+
+    res.status(500).json({ message: "Server error" });
+    return;
+  }
+};
+
 export default {
   create,
   getAll,
@@ -196,4 +236,5 @@ export default {
   findOne,
   deleteMany,
   bulkCreate,
+  createClientReview,
 };
