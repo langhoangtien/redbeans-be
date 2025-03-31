@@ -4,6 +4,8 @@ dotenv.config();
 export default {
     port: process.env.APP_PORT || 4201,
     dbUser: process.env.DATABASE_USERNAME,
+    redisHost: process.env.APP_MODE === "production" ? "redis" : "localhost",
+    redisPort: process.env.APP_MODE === "production" ? 6379 : process.env.REDIS_PORT,
     dbPassword: process.env.DATABASE_PASSWORD,
     dbPort: process.env.DATABASE_PORT || 27017,
     dbUri: process.env.MONGO_URI || "mongodb://localhost:27017/myapp",

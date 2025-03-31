@@ -3,6 +3,7 @@ import config from "../../config/index.js";
 import Variant from "../variant/variant.model.js";
 import Order from "../order/order.model.js";
 import { calculateTax } from "../../utilities/index.js";
+import { sendEmail } from "../../utilities/sendmail.js";
 const client = new Client({
     clientCredentialsAuthCredentials: {
         oAuthClientId: config.paypalClientId,
@@ -130,7 +131,6 @@ const createOrder = async (req, res) => {
 };
 const captureOrder = async (req, res) => {
     const { id } = req.params;
-    console.log("ID_CAPTURE", id);
     const collect = {
         id,
         prefer: "return=minimal",
@@ -142,9 +142,14 @@ const captureOrder = async (req, res) => {
             res.status(400).json({ message: "Order not completed" });
             return;
         }
-        await Order.findOneAndUpdate({ paymentId: id }, // Tìm đơn hàng theo PayPal ID
-        { status: "COMPLETE" } // Đánh dấu là đã thanh toán
+        const order = await Order.findOneAndUpdate({ paymentId: id }, // Tìm đơn hàng theo PayPal ID
+        { status: "COMPLETE" }, { new: true } // Trả về document đã cập nhật
         );
+        if (!order) {
+            console.error("Order not found!");
+            return;
+        }
+        sendOrderConfirmationEmail(order);
         res.json(response);
         return;
     }
@@ -156,6 +161,132 @@ const captureOrder = async (req, res) => {
         res.status(500).json({ message: "Internal Server Error" });
         return;
     }
+};
+const sendOrderConfirmationEmail = async (order) => {
+    // Tạo danh sách sản phẩm từ `order.products`
+    const productRows = order.products
+        .map((item) => `
+      <tr>
+        <td>${item.name}</td>
+        <td>${item.quantity}</td>
+        <td>$${item.price.toFixed(2)}</td>
+      </tr>`)
+        .join("");
+    // Render địa chỉ giao hàng
+    const shippingAddress = order.shippingAddress
+        ? `${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.state}, ${order.shippingAddress.country}`
+        : "N/A";
+    // Xây dựng nội dung email
+    const htmlTemplate = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
+    <title>Order Confirmation - LUDMIA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #333;
+        }
+        .order-details {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background: #007bff;
+            color: #ffffff;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin-top: 20px;
+            background: #007bff;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+        }
+    </style>
+    </head>
+    <body>
+      <div class="container">
+          <h2>Thank You for Your Order, ${order.name}!</h2>
+          <p>Your order <strong>#${order._id || "N/A"}</strong> has been successfully placed.</p>
+
+          <div class="order-details">
+              <p><strong>Order Status:</strong> ${order.status}</p>
+              <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
+              
+              <p><strong>Order Summary:</strong></p>
+              <table>
+                  <thead>
+                      <tr><th>Product</th><th>Quantity</th><th>Price</th></tr>
+                  </thead>
+                  <tbody>
+                      ${productRows}
+                  </tbody>
+              </table>
+              <p><strong>Total: </strong>$${order.total}</p>
+              <p><strong>Voucher Applied: </strong>${order.voucher || "None"}</p>
+              <p><strong>Shipping Address: </strong>${shippingAddress}</p>
+              <p><strong>Estimated Delivery: </strong>${order.deliveryAddress?.city || "N/A"}</p>
+          </div>
+
+          <p>You can track your order status by clicking the button below:</p>
+          <a class="button" href="#">Track My Order</a>
+
+          <p>If you have any questions, feel free to contact us at <a href="mailto:contact@quitmood.net">contact@quitmood.net</a>.</p>
+
+          <div class="footer">
+              <p>Best regards,<br><strong>Quit Mood Team</strong></p>
+          </div>
+      </div>
+    </body>
+    </html>
+  `;
+    await sendEmail({
+        to: order.email,
+        subject: "Order Confirmation - QuitMood",
+        text: `Thank you for your order! Your order ID is ${order._id || "N/A"}.`,
+        html: htmlTemplate,
+    });
+    // Gửi email
+    // await transporter.sendMail({
+    //   from: '"LUDMIA" <your-email@yourdomain.com>',
+    //   to: order.email,
+    //   subject: "Your Order Confirmation - LUDMIA",
+    //   html: htmlTemplate,
+    // });
+    // console.log(`✅ Order confirmation email sent to ${order.email}`);
 };
 export default {
     createOrder,

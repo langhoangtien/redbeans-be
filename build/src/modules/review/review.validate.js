@@ -2,7 +2,7 @@ import { z } from "zod";
 export const reviewSchema = z.object({
     productId: z.string().min(1).max(255),
     customer: z.string().min(1).max(255),
-    title: z.string().min(1).max(255),
+    title: z.string().max(255),
     body: z.string().min(1).max(2000),
     rating: z.number().int().min(1).max(5),
     images: z.array(z.string().url()).optional(), // Mảng chứa URL hình ảnh (có thể rỗng)
@@ -18,5 +18,6 @@ export const reviewSchema = z.object({
     createdAt: z.string().optional(),
     updatedAt: z.string().optional(),
 });
+export const reviewsSchema = z.array(reviewSchema);
 export const updateReviewSchema = reviewSchema.partial();
 //# sourceMappingURL=review.validate.js.map

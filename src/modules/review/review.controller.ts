@@ -172,4 +172,28 @@ const deleteMany = async (req: Request, res: Response) => {
     return;
   }
 };
-export default { create, getAll, update, remove, findOne, deleteMany };
+
+const bulkCreate = async (req: Request, res: Response) => {
+  const data = req.body;
+  if (!Array.isArray(data) || data.length === 0) {
+    res.status(400).json({ message: "Invalid data format" });
+    return;
+  }
+  try {
+    const createdDocs = await model.insertMany(data);
+    res.status(201).json(createdDocs);
+  } catch (error) {
+    console.error("Error importing documents:", error);
+    res.status(500).json({ message: "Server error" });
+    return;
+  }
+};
+export default {
+  create,
+  getAll,
+  update,
+  remove,
+  findOne,
+  deleteMany,
+  bulkCreate,
+};
