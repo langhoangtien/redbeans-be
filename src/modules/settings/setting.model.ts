@@ -28,7 +28,7 @@ const SettingsSchema = new Schema<ISettings>(
       enum: ["Gmail", "Zoho", "SendGrid"],
       default: "Zoho",
     },
-    smtpUser: { type: String, default: "" },
+    smtpUser: { type: String, default: "contact@quitmood.net" },
     smtpPass: { type: String, default: "" },
     smtpPort: { type: String, default: "465" },
     smtpHost: { type: String, default: "smtp.zoho.com" },
