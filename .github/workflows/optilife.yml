@@ -24,6 +24,6 @@ jobs:
       - name: Deploy to VPS
         run: |
           echo "Deploying to VPS..."
-          ssh -o StrictHostKeyChecking=no root@$VPS_IP "cd /var/www/optilife-be && git checkout optilife &&  git pull && docker compose down && docker compose up --build -d && docker compose logs --tail=50 && sleep 10 && exit"
+          ssh -o StrictHostKeyChecking=no root@$VPS_IP "cd /var/www/optilife-be && git pull && docker compose down && docker compose up --build -d && docker compose logs --tail=50 && sleep 10 && exit"
         env:
           VPS_IP: ${{ secrets.VPS_IP }} # Địa chỉ IP của VPS từ GitHub Secrets
