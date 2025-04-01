@@ -37,6 +37,9 @@ COPY --from=builder /app/build ./build
 # Copy các file cần thiết khác
 COPY .env ./
 
+# Thêm NODE_OPTIONS để tăng bộ nhớ heap cho Node.js (ví dụ 4GB)
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 # Expose port ứng dụng
 EXPOSE 3000
 

@@ -25,7 +25,7 @@ export const upload = multer({
         }
     },
 });
-const sizes = [100, 250, 400, 800];
+const sizes = [400, 800];
 const outputDir = "uploads";
 const ensureDirExists = (dir) => {
     if (!fs.existsSync(dir)) {

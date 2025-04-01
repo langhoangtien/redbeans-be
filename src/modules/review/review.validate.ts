@@ -23,3 +23,14 @@ export const reviewsSchema = z.array(reviewSchema);
 
 export type ReviewInput = z.infer<typeof reviewSchema>;
 export const updateReviewSchema = reviewSchema.partial();
+
+export const reviewClientSchema = z
+  .object({
+    productId: z.string().min(1).max(255),
+    customer: z.string().min(1).max(255),
+    title: z.string().max(255),
+    email: z.string().email().max(255),
+    body: z.string().min(1).max(1000),
+    rating: z.number().int().min(1).max(5),
+  })
+  .strict();

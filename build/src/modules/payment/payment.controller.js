@@ -1,27 +1,13 @@
-import { ApiError, Client, Environment, LogLevel, OrdersController, } from "@paypal/paypal-server-sdk";
-import config from "../../config/index.js";
+import { ApiError, } from "@paypal/paypal-server-sdk";
 import Variant from "../variant/variant.model.js";
 import Order from "../order/order.model.js";
 import { calculateTax } from "../../utilities/index.js";
-import { sendEmail } from "../../utilities/sendmail.js";
-const client = new Client({
-    clientCredentialsAuthCredentials: {
-        oAuthClientId: config.paypalClientId,
-        oAuthClientSecret: config.paypalClientSecret,
-    },
-    timeout: 0,
-    environment: Environment.Sandbox,
-    logging: {
-        logLevel: LogLevel.Info,
-        logRequest: { logBody: true },
-        logResponse: { logHeaders: true },
-    },
-});
+import { sendEmail } from "../email/email.controller.js";
+import { getSettings } from "../settings/settings.controller.js";
+import getOrdersController from "./payment-order.controller.js";
 // interface IPurchaseUnitRequest {
 //   amount: {
-const ordersController = new OrdersController(client);
 const createOrder = async (req, res) => {
-    console.log("CREATE_ORDER");
     const cart = req.body;
     const cartClone = { ...cart };
     delete cartClone.voucher;
@@ -53,7 +39,6 @@ const createOrder = async (req, res) => {
         const total = (totalWithoutTax *
             (1 +
                 calculateTax(cart.shippingAddress.country, cart.shippingAddress.state || ""))).toFixed(2);
-        console.log("TOTAL", total, "TOTAL_WITHOUT_TAX", totalWithoutTax);
         cartClone.amount = total;
         const purchase = {
             amount: {
@@ -66,29 +51,6 @@ const createOrder = async (req, res) => {
                     },
                 },
             },
-            // items: products.map((item) => {
-            //   return {
-            //     name: item.name,
-            //     quantity: item.quantity.toString(),
-            //     unitAmount: {
-            //       currencyCode: "USD",
-            //       value: item.price.toFixed(2),
-            //     },
-            //   };
-            // }),
-            // shipping: {
-            //   name: {
-            //     fullName: cart.shippingAddress.fullName,
-            //   },
-            //   address: {
-            //     addressLine1: cart.shippingAddress.address,
-            //     addressLine2: cart.shippingAddress.address2,
-            //     adminArea2: cart.shippingAddress.city,
-            //     adminArea1: cart.shippingAddress.state,
-            //     postalCode: cart.shippingAddress.postalCode,
-            //     countryCode: cart.shippingAddress.country,
-            //   },
-            // },
         };
         // Xây dựng object yêu cầu cho PayPal
         const collect = {
@@ -98,6 +60,18 @@ const createOrder = async (req, res) => {
             },
             prefer: "return=minimal",
         };
+        const settings = await getSettings();
+        console.log("SETTINGS", settings);
+        if (!settings?.paypalClientId ||
+            !settings?.paypalSecret ||
+            !settings?.paypalMode) {
+            return null;
+        }
+        const ordersController = await getOrdersController();
+        if (!ordersController) {
+            res.status(500).json({ message: "Failed to create PayPal client" });
+            return;
+        }
         const { body } = await ordersController.ordersCreate(collect);
         const response = JSON.parse(body);
         if (!response.id) {
@@ -121,6 +95,7 @@ const createOrder = async (req, res) => {
         return;
     }
     catch (error) {
+        console.log("ERROR", error);
         if (error instanceof ApiError) {
             res.status(500).json({ message: error.message });
             return;
@@ -136,6 +111,11 @@ const captureOrder = async (req, res) => {
         prefer: "return=minimal",
     };
     try {
+        const ordersController = await getOrdersController();
+        if (!ordersController) {
+            res.status(500).json({ message: "Failed to create PayPal client" });
+            return;
+        }
         const { body } = await ordersController.ordersCapture(collect);
         const response = JSON.parse(body);
         if (response.status !== "COMPLETED") {
@@ -176,6 +156,7 @@ const sendOrderConfirmationEmail = async (order) => {
     const shippingAddress = order.shippingAddress
         ? `${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.state}, ${order.shippingAddress.country}`
         : "N/A";
+    const settings = await getSettings();
     // Xây dựng nội dung email
     const htmlTemplate = `
     <!DOCTYPE html>
@@ -262,12 +243,12 @@ const sendOrderConfirmationEmail = async (order) => {
           </div>
 
           <p>You can track your order status by clicking the button below:</p>
-          <a class="button" href="#">Track My Order</a>
+          <a class="button" href="${settings.companWebsite}/track-order">Track My Order</a>
 
-          <p>If you have any questions, feel free to contact us at <a href="mailto:contact@quitmood.net">contact@quitmood.net</a>.</p>
+          <p>If you have any questions, feel free to contact us at <a href="mailto:${settings.smtpUser}">${settings.smtpUser}</a>.</p>
 
           <div class="footer">
-              <p>Best regards,<br><strong>Quit Mood Team</strong></p>
+              <p>Best regards,<br><strong>${settings.companyName} Team</strong></p>
           </div>
       </div>
     </body>
@@ -275,18 +256,10 @@ const sendOrderConfirmationEmail = async (order) => {
   `;
     await sendEmail({
         to: order.email,
-        subject: "Order Confirmation - QuitMood",
+        subject: `Order Confirmation - ${settings.companyName}`,
         text: `Thank you for your order! Your order ID is ${order._id || "N/A"}.`,
         html: htmlTemplate,
     });
-    // Gửi email
-    // await transporter.sendMail({
-    //   from: '"LUDMIA" <your-email@yourdomain.com>',
-    //   to: order.email,
-    //   subject: "Your Order Confirmation - LUDMIA",
-    //   html: htmlTemplate,
-    // });
-    // console.log(`✅ Order confirmation email sent to ${order.email}`);
 };
 export default {
     createOrder,

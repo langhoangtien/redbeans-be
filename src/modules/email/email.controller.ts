@@ -1,6 +1,68 @@
+import nodemailer from "nodemailer";
+import model from "./email.model.js"; // Đảm bảo đường dẫn đúng đến model của bạn
 import mongoose, { mongo } from "mongoose";
 import { Request, Response } from "express";
-import model from "./review.model.js"; // Adjust the import path as necessary
+
+import { getSettings } from "../settings/settings.controller.js";
+// Cấu hình transporter với tài khoản Gmail
+
+interface ISendEmailOptions {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+}
+export async function sendEmail({
+  to,
+  subject,
+  text,
+  html,
+}: ISendEmailOptions): Promise<void> {
+  const settings = await getSettings();
+  const transporter = nodemailer.createTransport({
+    service: settings.mailService,
+    auth: {
+      user: settings.smtpUser || process.env.SMTP_USER,
+      pass: settings.smtpPass || process.env.SMTP_PASS,
+    },
+  });
+  try {
+    const info = await transporter.sendMail({
+      from: `${settings.companyName || "Quit Mood"} <${
+        settings.smtpUser || process.env.SMTP_USER
+      }>`,
+      to,
+      subject,
+      text,
+      html,
+    });
+
+    const email = new model({
+      sender: settings.smtpUser || "contact@quitmood.net",
+      recipient: to,
+      messageId: info.messageId,
+      subject,
+      text: text,
+      body: html,
+      status: "sent", // Status có thể là "sent", "failed", v.v.
+    });
+
+    await email.save();
+  } catch (error) {
+    console.error("Lỗi khi gửi email:", error);
+    const email = new model({
+      sender: settings.smtpUser || "contact@quitmood.net",
+      recipient: to,
+      subject,
+      text: text,
+      body: html,
+      status: "failed", // Status có thể là "sent", "failed", v.v.
+    });
+    await email.save();
+  }
+}
+
+// Gọi thử hàm gửi email
 
 const create = async (req: Request, res: Response) => {
   try {
@@ -25,47 +87,27 @@ const create = async (req: Request, res: Response) => {
 const getAll = async (req: Request, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const search = (req.query.search as string)?.trim() || "";
     const limit = parseInt(req.query.limit as string) || 10;
-    const productId = req.query.productId as string;
-    const rating = parseInt(req.query.rating as string);
-    const purchaseVerified = req.query.purchaseVerified === "true";
-    const hasMedia = req.query.hasMedia === "true";
-    const sortBy = (req.query.sortBy as string) || "createdAt"; // Mặc định sắp xếp theo ngày tạo
-    const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
-
+    const search = (req.query.search as string)?.trim() || "";
     const skip = (page - 1) * limit;
-    const filter: any = {};
 
-    if (productId) filter.productId = productId;
-    if (!isNaN(rating)) filter.rating = rating;
-    if (req.query.purchaseVerified !== undefined)
-      filter.purchaseVerified = purchaseVerified;
-    if (hasMedia)
-      filter.$or = [
-        { images: { $exists: true, $not: { $size: 0 } } },
-        { videos: { $exists: true, $not: { $size: 0 } } },
-      ];
-
+    let query: any = {};
     if (search) {
-      filter.$or = [
-        { customer: { $regex: search, $options: "i" } },
-        { title: { $regex: search, $options: "i" } },
+      query.$or = [
+        { sender: { $regex: search, $options: "i" } }, // Không phân biệt hoa thường
+        { recipient: { $regex: search, $options: "i" } },
       ];
     }
-    // Sắp xếp
-    console.log("sortBy", sortBy, "sortOrder", sortOrder);
 
-    // Chạy song song để tối ưu hiệu suất
     const [docs, totalDocs] = await Promise.all([
       model
-        .find(filter)
-        .sort({ [sortBy]: sortOrder })
+        .find(query)
+        .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit),
-      model.countDocuments(filter),
+        .limit(limit)
+        .select("-body"),
+      model.countDocuments(query),
     ]);
-
     res.json({
       data: docs,
       pagination: {
@@ -78,6 +120,7 @@ const getAll = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error fetching documents:", error);
     res.status(500).json({ message: "Server error" });
+    return;
   }
 };
 
@@ -88,7 +131,7 @@ const update = async (req: Request, res: Response) => {
     return;
   }
 
-  const updateData = { ...req.body, updatedAt: new Date() };
+  const updateData = req.body;
 
   try {
     const updatedDoc = await model.findByIdAndUpdate(id, updateData, {
@@ -176,65 +219,4 @@ const deleteMany = async (req: Request, res: Response) => {
     return;
   }
 };
-
-const bulkCreate = async (req: Request, res: Response) => {
-  const data = req.body;
-  if (!Array.isArray(data) || data.length === 0) {
-    res.status(400).json({ message: "Invalid data format" });
-    return;
-  }
-  try {
-    const createdDocs = await model.insertMany(data);
-    res.status(201).json(createdDocs);
-  } catch (error) {
-    console.error("Error importing documents:", error);
-    res.status(500).json({ message: "Server error" });
-    return;
-  }
-};
-
-const createClientReview = async (req: Request, res: Response) => {
-  try {
-    const { productId, title, rating, customer, email, body } = req.body;
-    const createdAt = new Date();
-    const updatedAt = new Date();
-    const data = {
-      productId,
-      title,
-      rating,
-      customer,
-      createdAt,
-      updatedAt,
-      body,
-      email,
-    };
-    console.log("data", data);
-
-    const newModel = new model(data);
-    const newDoc = await newModel.save();
-    res.status(201).json(newDoc);
-  } catch (error: any) {
-    if (error instanceof mongo.MongoServerError && error.code === 11000) {
-      const duplicateKey = Object.keys(error.keyValue)[0];
-      res.status(400).json({
-        message: `${duplicateKey} already exists: ${error.keyValue[duplicateKey]}`,
-      });
-      return;
-    }
-    console.error("Error creating document:", error);
-
-    res.status(500).json({ message: "Server error" });
-    return;
-  }
-};
-
-export default {
-  create,
-  getAll,
-  update,
-  remove,
-  findOne,
-  deleteMany,
-  bulkCreate,
-  createClientReview,
-};
+export default { create, getAll, update, remove, findOne, deleteMany };

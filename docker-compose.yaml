@@ -37,7 +37,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION}
     volumes:
-      - upload-data:/app/build/uploads
+      - upload-data:/build/uploads
 
 volumes:
   mongo-data:
