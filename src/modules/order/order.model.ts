@@ -49,6 +49,7 @@ export interface IOrder extends Document {
   name?: string;
   shippingAddress?: IShippingDetails;
   deliveryAddress?: IShippingDetails;
+  tax?: number; // Thuế áp dụng cho đơn hàng
   createdAt: Date;
   updatedAt: Date;
 }
@@ -158,6 +159,10 @@ const orderSchema = new Schema(
     total: {
       type: String,
       required: true,
+    },
+    tax: {
+      type: Number,
+      default: 0,
     },
     user: {
       type: Schema.Types.ObjectId,

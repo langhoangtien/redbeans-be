@@ -4,6 +4,7 @@ import mongoose, { mongo } from "mongoose";
 import { Request, Response } from "express";
 
 import { getSettings } from "../settings/settings.controller.js";
+import ErrorMessage from "../error/error.model.js";
 // Cấu hình transporter với tài khoản Gmail
 
 interface ISendEmailOptions {
@@ -49,7 +50,8 @@ export async function sendEmail({
 
     await email.save();
   } catch (error) {
-    console.error("Lỗi khi gửi email:", error);
+    const errorMessage = new ErrorMessage({ error: JSON.stringify(error) });
+    await errorMessage.save();
     const email = new model({
       sender: settings.smtpUser || "contact@quitmood.net",
       recipient: to,

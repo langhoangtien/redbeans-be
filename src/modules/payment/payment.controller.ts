@@ -86,14 +86,12 @@ const createOrder = async (req: Request, res: Response): Promise<any> => {
       // Tính tổng tiền dựa trên giá của biến thể và số lượng
       totalWithoutTax += (product.price || 0) * item.quantity;
     }
-    const total = (
-      totalWithoutTax *
-      (1 +
-        calculateTax(
-          cart.shippingAddress.country,
-          cart.shippingAddress.state || ""
-        ))
-    ).toFixed(2);
+    const taxPercent = calculateTax(
+      cart.shippingAddress.country,
+      cart.shippingAddress.state || ""
+    );
+    const tax = totalWithoutTax * taxPercent;
+    const total = (totalWithoutTax + tax).toFixed(2);
 
     cartClone.amount = total;
     const purchase: PurchaseUnitRequest = {
@@ -118,7 +116,6 @@ const createOrder = async (req: Request, res: Response): Promise<any> => {
     };
 
     const settings = await getSettings();
-    console.log("SETTINGS", settings);
 
     if (
       !settings?.paypalClientId ||
@@ -145,6 +142,7 @@ const createOrder = async (req: Request, res: Response): Promise<any> => {
       userId: req.user?.id, // Nếu có user login
       products: products,
       total: total,
+      tax: tax.toFixed(2),
       email: cart.email,
       name: cart.shippingAddress.fullName,
       billingAddress: cart.billingAddress,
@@ -218,7 +216,13 @@ const sendOrderConfirmationEmail = async (order: IOrder) => {
       (item) => `
       <tr>
         <td>${item.name}</td>
-        <td>${item.quantity}</td>
+        <td><p>${item.quantity}</p>
+        <p class="product-attr">${item.attributes
+          .map((attr) => `<span>${attr.name}: ${attr.value}</span>`)
+          .join(", ")}</p>
+        </p>
+        
+        </td>
         <td>$${item.price.toFixed(2)}</td>
       </tr>`
     )
@@ -289,6 +293,10 @@ const sendOrderConfirmationEmail = async (order: IOrder) => {
             font-size: 12px;
             color: #666;
         }
+       .product-attr {
+            font-size: 12px;
+            color: #666;
+  }
     </style>
     </head>
     <body>
@@ -311,6 +319,7 @@ const sendOrderConfirmationEmail = async (order: IOrder) => {
                       ${productRows}
                   </tbody>
               </table>
+              <p><strong>Tax: </strong>$${order.tax}</p>
               <p><strong>Total: </strong>$${order.total}</p>
               <p><strong>Voucher Applied: </strong>${
                 order.voucher || "None"
