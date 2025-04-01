@@ -50,7 +50,10 @@ export const orderSchema = z.object({
   total: z
     .number()
     .nonnegative({ message: "Total must be a nonnegative number" }),
-  email: z.string().email(),
+  tax: z
+    .number()
+    .nonnegative({ message: "Tax must be a nonnegative number" })
+    .optional(),
   trackingNumber: z.string().optional(),
   logisticPartner: z.string().optional(),
   isSendEmail: z.boolean().optional(),
