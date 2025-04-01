@@ -9,6 +9,7 @@ import orderRouter from "../modules/order/order.route.js";
 import reviewRouter from "../modules/review/review.route.js";
 import blogRouter from "../modules/blog/blog.route.js";
 import settingsRouter from "../modules/settings/settings.route.js";
+import emailRouter from "../modules/email/email.route.js";
 router.use("/categories", categoryRouter);
 router.use("/settings", settingsRouter);
 // router.use("/uploads", uploadRouter);
@@ -19,5 +20,6 @@ router.use("/products", productRouter);
 router.use("/orders", orderRouter);
 router.use("/reviews", reviewRouter);
 router.use("/blogs", blogRouter);
+router.use("/emails", emailRouter);
 export default router;
 //# sourceMappingURL=index.js.map
