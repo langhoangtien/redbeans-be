@@ -1,16 +1,18 @@
 import { Request, Response } from "express";
 import axios from "axios";
 import config from "../../config/index.js";
-const { paypalClientId, paypalClientSecret, paypalApi } = config;
+import { getSettings } from "../settings/settings.controller.js";
+const { paypalApi } = config;
 async function getAccessToken() {
+  const settings = await getSettings();
   try {
     const response = await axios.post(
       `${paypalApi}/v1/oauth2/token`,
       "grant_type=client_credentials",
       {
         auth: {
-          username: paypalClientId,
-          password: paypalClientSecret,
+          username: settings.paypalClientId,
+          password: settings.paypalSecret,
         },
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
