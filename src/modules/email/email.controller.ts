@@ -21,12 +21,14 @@ export async function sendEmail({
 }: ISendEmailOptions): Promise<void> {
   const settings = await getSettings();
   const transporter = nodemailer.createTransport({
-    service: settings.mailService,
+    host: settings.smtpHost || process.env.SMTP_HOST,
+    port: parseInt(settings.smtpPort || process.env.SMTP_PORT || "587"),
+    secure: parseInt(settings.smtpPort) === 465, // true for 465, false for other ports
     auth: {
       user: settings.smtpUser || process.env.SMTP_USER,
       pass: settings.smtpPass || process.env.SMTP_PASS,
     },
-  });
+  } as nodemailer.TransportOptions);
   try {
     const info = await transporter.sendMail({
       from: `${settings.companyName || "Quit Mood"} <${
