@@ -17,6 +17,7 @@ const allowedOrigins = [
   "https://quitmood.net",
   "https://optilifecompany.com",
   "http://localhost:5173",
+  "http://192.168.1.5:5173",
 ];
 
 app.use(

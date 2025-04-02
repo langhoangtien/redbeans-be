@@ -215,12 +215,14 @@ const sendOrderConfirmationEmail = async (order: IOrder) => {
     .map(
       (item) => `
       <tr>
-        <td>${item.name}</td>
-        <td><p>${item.quantity}</p>
-        <p class="product-attr">${item.attributes
-          .map((attr) => `<span>${attr.name}: ${attr.value}</span>`)
-          .join(", ")}</p>
+        <td><p>${item.name}</p>
+           <p class="product-attr">${item.attributes
+             .map((attr) => `<span>${attr.name}: ${attr.value}</span>`)
+             .join(", ")}</p>
         </p>
+        </td>
+        <td><p>${item.quantity}</p>
+     
         
         </td>
         <td>$${item.price.toFixed(2)}</td>
