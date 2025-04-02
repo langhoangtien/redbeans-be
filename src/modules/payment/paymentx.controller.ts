@@ -6,8 +6,13 @@ const { paypalApi } = config;
 async function getAccessToken() {
   const settings = await getSettings();
   try {
+    const url =
+      settings.paypalMode === "Production"
+        ? "https://api.paypal.com"
+        : "https://api.sandbox.paypal.com";
+
     const response = await axios.post(
-      `${paypalApi}/v1/oauth2/token`,
+      `${url}/v1/oauth2/token`,
       "grant_type=client_credentials",
       {
         auth: {
