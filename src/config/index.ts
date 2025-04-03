@@ -3,6 +3,7 @@ dotenv.config();
 
 // Cấu hình ứng dụng
 export default {
+  appMode: process.env.APP_MODE || "development",
   port: process.env.APP_PORT || 4201,
   dbUser: process.env.DATABASE_USERNAME,
   redisHost: process.env.APP_MODE === "production" ? "redis" : "localhost",

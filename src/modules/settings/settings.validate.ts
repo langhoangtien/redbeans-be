@@ -14,6 +14,7 @@ export const settingsSchema = z.object({
   paypalSecret: z.string().optional(),
   paypalMode: z.enum(["Sandbox", "Production"]).optional(),
   paypalApi: z.string().optional(),
+  facebookPixelId: z.string().optional(),
 });
 
 export type SettingsInput = z.infer<typeof settingsSchema>;

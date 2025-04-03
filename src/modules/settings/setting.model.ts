@@ -15,6 +15,7 @@ export interface ISettings extends Document {
   paypalSecret?: string;
   paypalMode?: "Sandbox" | "Production";
   paypalApi?: string;
+  facebookPixelId?: string;
 }
 
 // Tạo Mongoose Schema dựa trên Zod Schema
@@ -32,6 +33,7 @@ const SettingsSchema = new Schema<ISettings>(
     smtpPass: { type: String, default: "" },
     smtpPort: { type: String, default: "465" },
     smtpHost: { type: String, default: "smtp.zoho.com" },
+    facebookPixelId: { type: String, default: "" },
     companWebsite: {
       type: String,
       default: "https://quitmood.net",

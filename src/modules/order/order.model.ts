@@ -3,21 +3,30 @@ import { Document, Model, model, Schema } from "mongoose";
 // --- Định nghĩa các hằng số enum cho trạng thái đơn hàng và phương thức thanh toán ---
 export const OrderStatus = {
   PENDING: "PENDING",
-  PAID: "COMPLETE",
+  COMPLETE: "COMPLETE",
   CANCELLED: "CANCELLED",
   REFUNDED: "REFUNDED",
+  PAID: "PAID",
+  SHIPPED: "SHIPPED",
 } as const;
 export type OrderStatusType = (typeof OrderStatus)[keyof typeof OrderStatus];
 
 export const PaymentMethod = {
   PAYPAL: "paypal",
-  CREDIT_CARD: "credit_card",
+  CREDIT_CARD: "card",
   BANK_TRANSFER: "bank_transfer",
   CASH_ON_DELIVERY: "cash_on_delivery",
-  STRIPE: "stripe",
+  NA: "n/a",
 } as const;
 export type PaymentMethodType =
   (typeof PaymentMethod)[keyof typeof PaymentMethod];
+
+export const paymentGateway = {
+  PAYPAL: "paypal",
+  STRIPE: "stripe",
+} as const;
+export type paymentGatewayType =
+  (typeof paymentGateway)[keyof typeof paymentGateway];
 
 // --- Interface cho từng Order Item ---
 export interface IOrderItem {
@@ -47,9 +56,12 @@ export interface IOrder extends Document {
   isSendEmail?: boolean; // Đã gửi email thông báo cho khách hàng
   email?: string;
   name?: string;
+  paymentSource?: object; // Nguồn thanh toán (nếu có)
+  paypalStatus?: string; // Trạng thái đơn hàng trên PayPal
   shippingAddress?: IShippingDetails;
   deliveryAddress?: IShippingDetails;
-  tax?: number; // Thuế áp dụng cho đơn hàng
+  paymentGateway?: paymentGatewayType; // Cổng thanh toán (nếu có)
+  tax?: string; // Thuế áp dụng cho đơn hàng
   createdAt: Date;
   updatedAt: Date;
 }
@@ -90,6 +102,7 @@ const orderItemSchema = new Schema({
   image: {
     type: String,
   },
+
   quantity: {
     type: Number,
     required: true,
@@ -164,6 +177,10 @@ const orderSchema = new Schema(
       type: Number,
       default: 0,
     },
+    paymentGateway: {
+      type: String,
+      default: "paypal",
+    },
     user: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -171,6 +188,12 @@ const orderSchema = new Schema(
     paypalOrderId: {
       type: String,
       default: null,
+    },
+    paymentSource: {
+      type: Object,
+    },
+    paypalStatus: {
+      type: String,
     },
     paymentId: {
       type: String,

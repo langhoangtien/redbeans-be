@@ -20,10 +20,18 @@ export async function sendEmail({
   html,
 }: ISendEmailOptions): Promise<void> {
   const settings = await getSettings();
+  let host = "smtp.gmail.com";
+  if (settings.mailService === "Zoho") {
+    host = "smtp.zoho.com";
+  }
+  if (settings.mailService === "SendGrid") {
+    host = "smtp.sendgrid.net";
+  }
+
   const transporter = nodemailer.createTransport({
-    host: settings.smtpHost || process.env.SMTP_HOST,
-    port: parseInt(settings.smtpPort || process.env.SMTP_PORT || "587"),
-    secure: parseInt(settings.smtpPort) === 465, // true for 465, false for other ports
+    host: host,
+    port: 587,
+    secure: false, // true for 465, false for other ports
     auth: {
       user: settings.smtpUser || process.env.SMTP_USER,
       pass: settings.smtpPass || process.env.SMTP_PASS,

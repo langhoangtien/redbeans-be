@@ -64,7 +64,7 @@ const update = async (req: Request, res: Response) => {
     res.status(400).json({ message: "Invalid ID format" });
     return;
   }
-  const updateData = req.body;
+  const { paymentSource, paymentId, ...updateData } = req.body;
 
   try {
     const updatedDoc = await model.findByIdAndUpdate(id, updateData, {

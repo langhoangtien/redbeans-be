@@ -4,6 +4,7 @@ import {
   CheckoutPaymentIntent,
   PurchaseUnitRequest,
 } from "@paypal/paypal-server-sdk";
+import axios from "axios";
 import { ObjectId } from "mongodb";
 import { IProduct } from "../product/product.model.js";
 import Variant from "../variant/variant.model.js";
@@ -47,9 +48,76 @@ interface ICart {
   };
 }
 
-// interface IPurchaseUnitRequest {
-//   amount: {
+async function getAccessToken() {
+  const settings = await getSettings();
+  try {
+    const url =
+      settings.paypalMode === "Production"
+        ? "https://api.paypal.com"
+        : "https://api.sandbox.paypal.com";
 
+    const response = await axios.post(
+      `${url}/v1/oauth2/token`,
+      "grant_type=client_credentials",
+      {
+        auth: {
+          username: settings.paypalClientId,
+          password: settings.paypalSecret,
+        },
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    return {
+      accessToken: response.data.access_token,
+      paypalUrl: url,
+      paypalClientId: settings.paypalClientId,
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+type GetAccessTokenResponse = {
+  accessToken: string;
+  paypalUrl: string;
+  paypalClientId: string;
+} | null;
+async function generateClientData(_req: Request, res: Response) {
+  try {
+    // 1️⃣ Lấy access token từ PayPal
+
+    const data: GetAccessTokenResponse = await getAccessToken();
+    if (!data) {
+      res.status(500).json({ error: "Error generating access token" });
+      return;
+    }
+
+    // 2️⃣ Lấy client token
+    const tokenResponse = await axios({
+      url: `${data.paypalUrl}/v1/identity/generate-token`,
+      method: "post",
+      headers: {
+        Authorization: `Bearer ${data.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: {},
+    });
+
+    res.json({
+      data: {
+        clientToken: tokenResponse.data.client_token,
+        paypalClientId: data.paypalClientId,
+      },
+    });
+  } catch (error) {
+    console.error("Error generating client token:", error);
+    res.status(500).json({ error: "Error generating client token" });
+    return;
+  }
+}
 const createOrder = async (req: Request, res: Response): Promise<any> => {
   const cart: ICart = req.body;
   const cartClone = { ...cart };
@@ -147,7 +215,9 @@ const createOrder = async (req: Request, res: Response): Promise<any> => {
       name: cart.shippingAddress.fullName,
       billingAddress: cart.billingAddress,
       shippingAddress: cart.shippingAddress,
-      paymentMethod: "paypal",
+      paypalStatus: response.status,
+      paymentGateway: "paypal",
+      paymentMethod: "n/a",
       status: "PENDING", // Ban đầu đơn hàng sẽ ở trạng thái chờ thanh toán
     });
 
@@ -155,8 +225,6 @@ const createOrder = async (req: Request, res: Response): Promise<any> => {
     res.json(JSON.parse(body as string));
     return;
   } catch (error: unknown) {
-    console.log("ERROR", error);
-
     if (error instanceof ApiError) {
       res.status(500).json({ message: error.message });
       return;
@@ -182,13 +250,27 @@ const captureOrder = async (req: Request, res: Response): Promise<any> => {
     }
     const { body } = await ordersController.ordersCapture(collect);
     const response = JSON.parse(body as string);
+
     if (response.status !== "COMPLETED") {
       res.status(400).json({ message: "Order not completed" });
       return;
     }
+
+    let paymentMethod = "n/a";
+    if (response.payment_source?.paypal) {
+      paymentMethod = "paypal";
+    }
+    if (response.payment_source?.card) {
+      paymentMethod = "card";
+    }
     const order = await Order.findOneAndUpdate(
       { paymentId: id }, // Tìm đơn hàng theo PayPal ID
-      { status: "COMPLETE" },
+      {
+        status: "PAID",
+        paymentSource: response.payment_source,
+        paypalStatus: response.status,
+        paymentMethod: paymentMethod,
+      }, // Cập nhật trạng thái đơn hàng
       { new: true } // Trả về document đã cập nhật
     );
 
@@ -362,4 +444,5 @@ const sendOrderConfirmationEmail = async (order: IOrder) => {
 export default {
   createOrder,
   captureOrder,
+  generateClientData,
 };

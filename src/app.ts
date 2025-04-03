@@ -3,14 +3,11 @@ import router from "./routes/index.js";
 import express from "express";
 import publicRouter from "./routes/public.route.js";
 import cors from "cors";
-
+import { errorConverter, errorHandler } from "./middleware/error.js";
+import { authLimiter } from "./middleware/rate-limit.js";
 const app = express();
 app.use(express.json({ limit: "10mb" })); // Cho phép request tối đa 10MB
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-// app.use((req, res, next) => {
-//   console.log(`Request Path: ${req.path}`);
-//   next();
-// });
 
 const allowedOrigins = [
   "http://localhost:3001",
@@ -33,8 +30,37 @@ app.use(
   })
 );
 
-app.use(express.json());
+const uploadsPath = "uploads"; // đường dẫn đến thư mục uploads
+// app.use((req, res, next) => {
+//   setTimeout(() => {
+//     next(); // Tiếp tục xử lý request sau 3 giây
+//   }, 3000); // Delay 3 giây
+// });
+app.use(
+  "/static/",
+  (_req, res, next) => {
+    res.setHeader("Content-Type", "image/avif");
+    next();
+  },
+  express.static(uploadsPath, {
+    maxAge: 31536000000, // 1 năm
+    etag: true,
+    lastModified: true,
+    immutable: true,
+    index: false,
+    fallthrough: false,
+  })
+);
+
+app.use((err, _req, res, _next) => {
+  const statusCode = err.statusCode || 500;
+  res.status(statusCode);
+  res.send("Error");
+});
+app.use("/auth", authLimiter);
+
 app.use("/", publicRouter);
 app.use("/", authenticateJWT, router);
-
+app.use(errorConverter);
+app.use(errorHandler);
 export default app;

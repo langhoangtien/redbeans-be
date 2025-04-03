@@ -208,7 +208,6 @@ const createClientReview = async (req: Request, res: Response) => {
       body,
       email,
     };
-    console.log("data", data);
 
     const newModel = new model(data);
     const newDoc = await newModel.save();

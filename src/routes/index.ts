@@ -11,10 +11,11 @@ import reviewRouter from "../modules/review/review.route.js";
 import blogRouter from "../modules/blog/blog.route.js";
 import settingsRouter from "../modules/settings/settings.route.js";
 import emailRouter from "../modules/email/email.route.js";
+import uploadRouter from "../modules/upload/upload.route.js";
 
 router.use("/categories", categoryRouter);
 router.use("/settings", settingsRouter);
-// router.use("/uploads", uploadRouter);
+router.use("/uploads", uploadRouter);
 router.use("/users", userRouter);
 router.use("/posts", postRouter);
 router.use("/auth", authRouter);
