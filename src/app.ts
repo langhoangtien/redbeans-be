@@ -31,11 +31,7 @@ app.use(
 );
 
 const uploadsPath = "uploads"; // đường dẫn đến thư mục uploads
-// app.use((req, res, next) => {
-//   setTimeout(() => {
-//     next(); // Tiếp tục xử lý request sau 3 giây
-//   }, 3000); // Delay 3 giây
-// });
+
 app.use(
   "/static/",
   (_req, res, next) => {
