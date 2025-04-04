@@ -86,6 +86,7 @@ type GetAccessTokenResponse = {
   paypalClientId: string;
 } | null;
 async function generateClientData(_req: Request, res: Response) {
+  console.log("Generating client token...");
   try {
     // 1️⃣ Lấy access token từ PayPal
 
@@ -119,6 +120,8 @@ async function generateClientData(_req: Request, res: Response) {
   }
 }
 const createOrder = async (req: Request, res: Response): Promise<any> => {
+  console.log("Creating order...");
+
   const cart: ICart = req.body;
   const cartClone = { ...cart };
   delete cartClone.voucher;

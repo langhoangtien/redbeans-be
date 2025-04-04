@@ -154,7 +154,7 @@ const getAll = async (req: Request, res: Response) => {
     let query: any = {};
     if (search) {
       query.$or = [
-        { title: { $regex: search, $options: "i" } }, // Không phân biệt hoa thường
+        { name: { $regex: search, $options: "i" } }, // Không phân biệt hoa thường
         { slug: { $regex: search, $options: "i" } },
       ];
     }
