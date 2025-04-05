@@ -39,3 +39,4 @@ lerna-debug.log*
 /uploads
 /ormconfig.json
 /build
+/cert
