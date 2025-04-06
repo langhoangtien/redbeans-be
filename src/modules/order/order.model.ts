@@ -1,25 +1,22 @@
 import { Document, Model, model, Schema } from "mongoose";
 
 // --- Định nghĩa các hằng số enum cho trạng thái đơn hàng và phương thức thanh toán ---
-export const OrderStatus = {
-  PENDING: "PENDING",
-  COMPLETE: "COMPLETE",
-  CANCELLED: "CANCELLED",
-  REFUNDED: "REFUNDED",
-  PAID: "PAID",
-  SHIPPED: "SHIPPED",
-} as const;
-export type OrderStatusType = (typeof OrderStatus)[keyof typeof OrderStatus];
+export enum OrderStatus {
+  PENDING = "PENDING",
+  COMPLETE = "COMPLETE",
+  CANCELLED = "CANCELLED",
+  REFUNDED = "REFUNDED",
+  PAID = "PAID",
+  SHIPPED = "SHIPPED",
+}
 
-export const PaymentMethod = {
-  PAYPAL: "paypal",
-  CREDIT_CARD: "card",
-  BANK_TRANSFER: "bank_transfer",
-  CASH_ON_DELIVERY: "cash_on_delivery",
-  NA: "n/a",
-} as const;
-export type PaymentMethodType =
-  (typeof PaymentMethod)[keyof typeof PaymentMethod];
+export enum PaymentMethod {
+  PAYPAL = "paypal",
+  CREDIT_CARD = "card",
+  BANK_TRANSFER = "bank_transfer",
+  CASH_ON_DELIVERY = "cash_on_delivery",
+  NA = "n/a",
+}
 
 export const paymentGateway = {
   PAYPAL: "paypal",
@@ -48,8 +45,8 @@ export interface IOrder extends Document {
   voucher?: string | null;
   total?: string; // Tổng tiền của đơn hàng
   user?: Schema.Types.ObjectId; // Tham chiếu đến người dùng (nếu có)
-  status: OrderStatusType;
-  paymentMethod: PaymentMethodType;
+  status: OrderStatus;
+  paymentMethod: PaymentMethod;
   paymentId?: string; // ID của đơn hàng trên PayPal
   trackingNumber?: string; // Mã vận đơn
   logisticPartner?: string; // Đơn vị vận chuyển
@@ -157,7 +154,6 @@ const orderSchema = new Schema(
     },
     email: {
       type: String,
-      required: true,
       maxLength: 100,
     },
     name: {
@@ -166,7 +162,7 @@ const orderSchema = new Schema(
     },
     voucher: {
       type: String,
-      default: null,
+      default: "",
       maxLength: 200,
     },
     total: {

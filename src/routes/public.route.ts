@@ -24,6 +24,7 @@ router.post(
   validateSchema(reviewClientSchema),
   reviewController.createClientReview
 );
+
 router.get("/files/:id", uploadController.getFile);
 router.get("/products", productController.getAll);
 router.get("/products/:id", productController.findOne);

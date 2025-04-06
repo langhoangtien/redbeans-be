@@ -15,7 +15,7 @@ import { sendEmail } from "../email/email.controller.js";
 import { getSettings } from "../settings/settings.controller.js";
 import getOrdersController from "./payment-order.controller.js";
 
-interface ICart {
+export interface ICart {
   products: {
     quantity: number;
     id: string;
@@ -31,10 +31,7 @@ interface ICart {
     state?: string;
     postalCode: string;
     country: string;
-    phoneNumber: {
-      countryCode: string;
-      nationalNumber: string;
-    };
+    phone: string;
   };
   billingAddress: {
     fullName: string;
@@ -120,8 +117,6 @@ async function generateClientData(_req: Request, res: Response) {
   }
 }
 const createOrder = async (req: Request, res: Response): Promise<any> => {
-  console.log("Creating order...");
-
   const cart: ICart = req.body;
   const cartClone = { ...cart };
   delete cartClone.voucher;

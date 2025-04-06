@@ -33,6 +33,7 @@ export const cartSchema = z.object({
     postalCode: z.string().min(1).max(200),
     country: z.string().min(2).max(2),
   }),
+  email: z.string().email().max(200).optional(),
 });
 
 export type ICart = z.infer<typeof cartSchema>;

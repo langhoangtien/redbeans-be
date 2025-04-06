@@ -61,7 +61,7 @@ export const orderSchema = z.object({
   logisticPartner: z.string().optional(),
   isSendEmail: z.boolean().optional(),
   name: z.string().optional(),
-  paymentId: z.string().max(100).optional(),
+  paymentId: z.string().max(100).nullable().optional(),
 
   // Nếu có user, có thể là string id (tùy vào cách bạn xử lý ObjectId)
   user: z.string().optional(),

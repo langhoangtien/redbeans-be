@@ -152,4 +152,12 @@ const deleteMany = async (req: Request, res: Response) => {
     return;
   }
 };
-export default { create, getAll, update, remove, findOne, deleteMany };
+
+export default {
+  create,
+  getAll,
+  update,
+  remove,
+  findOne,
+  deleteMany,
+};
