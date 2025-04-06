@@ -11,7 +11,7 @@ app.use(express.json({ limit: "10mb" })); // Cho phép request tối đa 10MB
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 const allowedOrigins = [
-  "https://localhost:7000",
+  "https://langtranhdongho.vn",
   "https://quitmood.net",
   "https://optilifecompany.com",
   "http://localhost:5173",

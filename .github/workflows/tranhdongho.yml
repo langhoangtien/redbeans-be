@@ -3,7 +3,7 @@ name: Deploy to VPS
 on:
   push:
     branches:
-      - tranhdongho # Chạy khi có thay đổi trên nhánh chính (quitmood)
+      - langtranhdongho # Chạy khi có thay đổi trên nhánh chính (quitmood)
 
 jobs:
   deploy:
