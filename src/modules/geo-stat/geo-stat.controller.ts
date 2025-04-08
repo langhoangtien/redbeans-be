@@ -148,6 +148,7 @@ const getByDate = async (req: Request, res: Response) => {
           $group: {
             _id: "$country",
             totalCount: { $sum: "$count" },
+            totalAddToCart: { $sum: "$countAddToCart" },
           },
         },
         { $sort: { totalCount: -1 } },
@@ -175,6 +176,7 @@ const getByDate = async (req: Request, res: Response) => {
       topCountries: topCountries.map((c) => ({
         country: c._id,
         count: c.totalCount,
+        countAddToCart: c.totalAddToCart,
       })),
     });
   } catch (error) {

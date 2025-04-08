@@ -150,11 +150,13 @@ const getAll = async (req: Request, res: Response) => {
 
     const search = (req.query.search as string)?.trim() || "";
     const skip = (page - 1) * limit;
+    const sortBy = (req.query.sortBy as string) || "createdAt";
+    const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
 
     let query: any = {};
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: "i" } }, // Không phân biệt hoa thường
+        { name: { $regex: search, $options: "i" } },
         { slug: { $regex: search, $options: "i" } },
       ];
     }
@@ -162,7 +164,7 @@ const getAll = async (req: Request, res: Response) => {
     const [docs, totalDocs] = await Promise.all([
       model
         .find(query)
-        .sort({ createdAt: -1 })
+        .sort({ [sortBy]: sortOrder })
         .skip(skip)
         .limit(limit)
         .populate("variants")

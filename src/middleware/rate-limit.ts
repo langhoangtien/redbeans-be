@@ -10,4 +10,16 @@ const authLimiter = rateLimit({
   },
 });
 
-export { authLimiter };
+const paymentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 phút
+  max: 15,
+  message: "Too many payment attempts. Please slow down.",
+});
+
+const clientLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 phút
+  max: 8,
+  message: "Too many requests from this IP, please try again later.",
+});
+
+export { authLimiter, paymentLimiter, clientLimiter };

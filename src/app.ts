@@ -4,18 +4,23 @@ import express from "express";
 import publicRouter from "./routes/public.route.js";
 import cors from "cors";
 import { errorConverter, errorHandler } from "./middleware/error.js";
-import { authLimiter } from "./middleware/rate-limit.js";
+import {
+  authLimiter,
+  clientLimiter,
+  paymentLimiter,
+} from "./middleware/rate-limit.js";
 
 const app = express();
 app.use(express.json({ limit: "10mb" })); // Cho phép request tối đa 10MB
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.set("trust proxy", 1);
 const allowedOrigins = [
   "https://langtranhdongho.vn",
   "https://quitmood.net",
   "https://optilifecompany.com",
+  "http://localhost:4173",
   "http://localhost:5173",
-  "http://localhost:5174",
 ];
 
 app.use(
@@ -55,6 +60,8 @@ app.use((err, _req, res, _next) => {
   res.send("Error");
 });
 app.use("/auth", authLimiter);
+app.use("/payment", paymentLimiter);
+app.use("/client", clientLimiter);
 
 app.use("/", publicRouter);
 app.use("/", authenticateJWT, router);
