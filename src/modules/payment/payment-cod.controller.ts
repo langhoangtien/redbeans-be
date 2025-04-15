@@ -37,7 +37,7 @@ async function codPayment(req: Request, res: Response) {
 
       const data = {
         quantity: item.quantity,
-        attributes: product.attributes,
+        title: product.title,
         variantId: item.id,
         productId: product.productId._id.toString(),
         price: product.price,

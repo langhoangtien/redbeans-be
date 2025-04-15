@@ -11,14 +11,22 @@ import {
 } from "./middleware/rate-limit.js";
 
 const app = express();
-app.use(express.json({ limit: "10mb" })); // Cho phép request tối đa 10MB
-
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+app.use((req, res, next) => {
+  const fullUrl = req.originalUrl;
+  if (fullUrl.length > 1000) {
+    res.status(414).json({ message: "URL too long" });
+  } else {
+    next();
+  }
+});
 app.set("trust proxy", 1);
 const allowedOrigins = [
   "https://langtranhdongho.vn",
   "https://quitmood.net",
   "https://optilifecompany.com",
+  "https://natureaeon.com",
   "http://localhost:4173",
   "http://localhost:5173",
 ];
@@ -40,31 +48,21 @@ const uploadsPath = "uploads"; // đường dẫn đến thư mục uploads
 
 app.use(
   "/static/",
-  (_req, res, next) => {
-    res.setHeader("Content-Type", "image/avif");
-    next();
-  },
   express.static(uploadsPath, {
-    maxAge: 31536000000, // 1 năm
-    etag: true,
-    lastModified: true,
+    maxAge: "1y",
     immutable: true,
     index: false,
     fallthrough: false,
   })
 );
 
-app.use((err, _req, res, _next) => {
-  const statusCode = err.statusCode || 500;
-  res.status(statusCode);
-  res.send("Error");
-});
 app.use("/auth", authLimiter);
 app.use("/payment", paymentLimiter);
 app.use("/client", clientLimiter);
 
-app.use("/", publicRouter);
-app.use("/", authenticateJWT, router);
+app.use(publicRouter);
+app.use(authenticateJWT);
+app.use(router);
 app.use(errorConverter);
 app.use(errorHandler);
 export default app;

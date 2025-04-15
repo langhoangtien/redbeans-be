@@ -1,19 +1,67 @@
 import { Document, Model, model, Schema } from "mongoose";
 
+export interface IVariantOption {
+  type: string;
+  name: string;
+  key: string;
+  values: IVariantOptionValue[];
+}
+
+export interface IVariantOptionValue {
+  title: string;
+  value: string;
+  price: number;
+  compareAtPrice: number;
+  image: string;
+  color: string;
+}
+
 export interface IProduct extends Document {
   name: string;
   description: string;
   introduction: string;
   slug: string;
   categories: string[];
+  collections?: {
+    title: string;
+    value: string;
+  }[];
   image?: string;
   images?: string[]; // Mảng URL ảnh
   minPrice?: number;
   minCompareAtPrice?: number;
-  variantOptions: Record<string, string[]>;
+  variantOptions: IVariantOption[];
   variants: string[];
+  rating?: number[];
+  averageRating?: number;
+  totalRating?: number;
+  accordion?: string;
+  accordionItems?: {
+    title: string;
+    value: string;
+  }[];
 }
 
+const AccordionSchema = new Schema({
+  title: {
+    type: String,
+    required: true,
+  },
+  value: {
+    type: String,
+    required: true,
+  },
+});
+const CollectionSchema = new Schema({
+  title: {
+    type: String,
+    required: true,
+  },
+  value: {
+    type: String,
+    required: true,
+  },
+});
 const productSchema = new Schema<IProduct>(
   {
     name: {
@@ -55,6 +103,31 @@ const productSchema = new Schema<IProduct>(
       default: 0,
       min: 0,
     },
+    rating: {
+      type: [Number],
+      default: [0, 0, 0, 0, 0],
+    },
+    averageRating: {
+      type: Number,
+      default: 0,
+    },
+    totalRating: {
+      type: Number,
+      default: 0,
+    },
+    accordion: {
+      type: String,
+    },
+    accordionItems: {
+      type: [AccordionSchema],
+      default: [],
+    },
+    collections: [
+      {
+        type: CollectionSchema,
+        default: [],
+      },
+    ],
     minCompareAtPrice: {
       type: Number,
       default: 0,

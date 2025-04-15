@@ -1,13 +1,34 @@
 import mongoose from "mongoose";
 import { Request, Response } from "express";
-import model from "./product.model.js";
+import model, { IVariantOption } from "./product.model.js";
 
-import VariantModel, { IVariant } from "../variant/variant.model.js";
+import VariantModel, {
+  IVariant,
+  IVariantAttribute,
+  IVariantRequest,
+} from "../variant/variant.model.js";
+import { calculateAverageRating } from "../../utilities/index.js";
 
-interface VariantOption {
-  name: string;
-  values: string[];
-}
+const getValidOptions = (options: IVariantOption[]) => {
+  const seenNames = new Set<string>();
+
+  return options.filter((option) => {
+    const isValid =
+      option.name.trim() !== "" &&
+      option.key.trim() !== "" &&
+      option.values.length > 0;
+
+    const isDuplicate = seenNames.has(option.name.trim());
+
+    if (isValid && !isDuplicate) {
+      seenNames.add(option.name.trim());
+      return true;
+    }
+
+    return false;
+  });
+};
+
 const getMinPrice = (variants: { price: number; compareAtPrice: number }[]) => {
   if (variants.length === 0) return { minPrice: 0, compareAtPrice: 0 };
   let minPrice = variants[0].price;
@@ -23,71 +44,84 @@ const getMinPrice = (variants: { price: number; compareAtPrice: number }[]) => {
   return { minPrice, minCompareAtPrice };
 };
 const generateVariantCombinations = (
-  variantOptions: VariantOption[]
-): { name: string; value: string }[][] => {
+  variantOptions: IVariantOption[]
+): IVariantRequest[] => {
   if (variantOptions.length === 0) return [];
 
-  return variantOptions.reduce<{ name: string; value: string }[][]>(
-    (acc, option) => {
-      const { name, values } = option;
-      if (acc.length === 0) return values.map((value) => [{ name, value }]);
-
-      return acc.flatMap((prev) =>
-        values.map((value) => [...prev, { name, value }])
-      );
-    },
-    []
+  const filteredOptions = getValidOptions(variantOptions);
+  const valuesList = filteredOptions.map((option) =>
+    option.values.map((val) => ({
+      key: option.key,
+      name: option.name,
+      value: val.value,
+      title: val.title,
+      image: val.image,
+      color: val.color,
+      price: val.price,
+      compareAtPrice: val.compareAtPrice,
+    }))
   );
+
+  const generateCombinations = (
+    lists: IVariantAttribute[][]
+  ): IVariantAttribute[][] => {
+    if (lists.length === 0) return [];
+
+    return lists.reduce<IVariantAttribute[][]>((acc, currentList) => {
+      if (acc.length === 0) return currentList.map((item) => [item]);
+
+      return acc.flatMap((accItem) =>
+        currentList.map((currItem) => [...accItem, currItem])
+      );
+    }, []);
+  };
+
+  const variantCombinations = generateCombinations(valuesList);
+  const variants = variantCombinations.map((attributes) => ({
+    attributes,
+    price: 0,
+    compareAtPrice: 0,
+    stock: 0,
+    sku: "",
+    image: "",
+    title: attributes.map((attr) => attr.title).join(", "),
+    key: attributes.map((attr) => attr.title).join(" - "),
+  }));
+  return variants;
 };
 const compareVariant = (
-  userVariants: any[],
-  variantOptions: VariantOption[],
+  userVariants: IVariantRequest[],
+  variantOptions: IVariantOption[],
   productId?: string
 ) => {
   if (variantOptions.length === 0) {
     const variant = userVariants[0];
     variant.attributes = [];
     variant.productId = productId;
+
     return [variant];
   }
   const expectedVariants = generateVariantCombinations(variantOptions);
-
-  const finalVariants = expectedVariants.map((expectedVariant) => {
+  const mappedVariants = expectedVariants.map((variant) => {
     const matchedVariant = userVariants.find(
-      (v: {
-        attributes?: { name: string; value: string }[];
-        price?: number;
-        compareAtPrice?: number;
-        stock?: number;
-        sku?: string;
-      }) =>
-        v.attributes &&
-        expectedVariant.every(({ name, value }) =>
-          v.attributes?.some(
-            (attr) => attr.name === name && attr.value === value
-          )
-        )
+      (userVariant) => userVariant.key === variant.key
     );
-
-    return {
-      attributes: expectedVariant,
-      price: matchedVariant?.price ?? 0,
-      compareAtPrice: matchedVariant?.compareAtPrice ?? 0,
-      stock: matchedVariant?.stock ?? 0,
-      sku: matchedVariant?.sku ?? "",
-      productId,
-    };
+    if (matchedVariant) {
+      return {
+        attributes: variant.attributes,
+        price: matchedVariant.price,
+        compareAtPrice: matchedVariant.compareAtPrice,
+        stock: matchedVariant.stock,
+        sku: matchedVariant.sku,
+        image: matchedVariant.image,
+        title: matchedVariant.title,
+        productId: productId,
+      };
+    }
+    return variant;
   });
 
-  const uniqueVariants = Array.from(
-    new Map(
-      finalVariants.map((v) => [
-        JSON.stringify(v.attributes), // Chuyển attributes thành chuỗi để so sánh
-        v,
-      ])
-    ).values()
-  );
-  return uniqueVariants;
+  return mappedVariants;
 };
 const create = async (req: Request, res: Response) => {
   try {
@@ -97,25 +131,36 @@ const create = async (req: Request, res: Response) => {
       return;
     }
 
-    const { variantOptions } = parsedData;
-
     const userVariants = Array.isArray(parsedData.variants)
       ? parsedData.variants
       : [];
 
-    const finalVariants = compareVariant(userVariants, variantOptions);
+    const finalVariants = compareVariant(
+      userVariants,
+      parsedData.variantOptions
+    );
     // Tính toán giá thấp nhất từ các biến thể
     const { minPrice, minCompareAtPrice } = getMinPrice(finalVariants);
+    const { totalRating, averageRating } = calculateAverageRating(
+      parsedData.rating
+    );
     const newProduct = new model({
       name: parsedData.name,
       description: parsedData.description,
       image: parsedData.image,
       slug: parsedData.slug,
       categories: parsedData.categories,
+      variantOptions: parsedData.variantOptions,
       images: parsedData.images,
       minPrice,
       minCompareAtPrice,
-      variantOptions,
+      accordion: parsedData.accordion,
+      accordionItems: parsedData.accordionItems,
+      introduction: parsedData.introduction,
+      collections: parsedData.collections,
+      rating: parsedData.rating,
+      averageRating,
+      totalRating,
     });
 
     const variantsWithProductId = finalVariants.map((variant) => ({
@@ -164,7 +209,7 @@ const getAll = async (req: Request, res: Response) => {
     const [docs, totalDocs] = await Promise.all([
       model
         .find(query)
-        .sort({ [sortBy]: sortOrder })
+        .sort({ [sortBy]: sortOrder, _id: 1 })
         .skip(skip)
         .limit(limit)
         .populate("variants")
@@ -194,6 +239,11 @@ const update = async (req: Request, res: Response) => {
   }
 
   const updateData = req.body;
+  const { totalRating, averageRating } = calculateAverageRating(
+    updateData.rating
+  );
+  updateData.totalRating = totalRating;
+  updateData.averageRating = averageRating;
 
   try {
     const existingProduct = await model.findById(id);
@@ -214,7 +264,25 @@ const update = async (req: Request, res: Response) => {
           if (!existingVariant) {
             return null;
           }
-          Object.assign(existingVariant, variant, { productId: id });
+          const price = variant.price || 0;
+          const compareAtPrice = variant.compareAtPrice || 0;
+          const stock = variant.stock || 0;
+          const sku = variant.sku || "";
+          const image = variant.image || "";
+          const title = variant.title || "";
+
+          Object.assign(
+            existingVariant,
+            {
+              price,
+              compareAtPrice,
+              stock,
+              sku,
+              image,
+              title,
+            },
+            { productId: id }
+          );
           return existingVariant.save();
         })
       );
@@ -237,13 +305,7 @@ const update = async (req: Request, res: Response) => {
     // Cập nhật thông tin sản phẩm nếu có biến thể mới
     Object.assign(existingProduct, updateData);
     if (updateData.variantOptions || updateData.variants) {
-      console.log("Updating variants", updateData);
-
-      const {
-        variantOptions,
-
-        variants: userVariants = [],
-      } = updateData;
+      const { variantOptions, variants: userVariants = [] } = updateData;
 
       if (
         !Array.isArray(variantOptions) ||

@@ -1,15 +1,10 @@
 import mongoose, { mongo } from "mongoose";
 import { Request, Response } from "express";
-import model from "./blog.model.js";
+import model from "./contact.model.js";
 
 const create = async (req: Request, res: Response) => {
   try {
-    const user = req.user;
-    if (!user) {
-      res.status(401).json({ message: "Unauthorized" });
-      return;
-    }
-    const newModel = new model({ ...req.body, user: user.userId });
+    const newModel = new model(req.body);
     const newDoc = await newModel.save();
     res.status(201).json(newDoc);
   } catch (error: any) {
@@ -32,29 +27,19 @@ const getAll = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = (req.query.search as string)?.trim() || "";
-    const collection = (req.query.collection as string)?.trim() || "";
-
     const skip = (page - 1) * limit;
 
     let query: any = {};
     if (search) {
       query.$or = [
-        { title: { $regex: search, $options: "i" } }, // Không phân biệt hoa thường
-        { slug: { $regex: search, $options: "i" } },
+        { name: { $regex: search, $options: "i" } }, // Không phân biệt hoa thường
+        { email: { $regex: search, $options: "i" } },
       ];
     }
 
-    if (collection) {
-      query["collections.value"] = collection;
-    }
     const [docs, totalDocs] = await Promise.all([
-      model
-        .find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .select("-content")
-        .populate("user", "username fullName _id image"),
+      model.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+
       model.countDocuments(query),
     ]);
     res.json({
@@ -124,30 +109,21 @@ const remove = async (req: Request, res: Response) => {
 
 const findOne = async (req: Request, res: Response) => {
   const { id } = req.params;
-
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    res.status(400).json({ message: "Invalid ID format" });
+    return;
+  }
   try {
-    let query;
-    if (mongoose.Types.ObjectId.isValid(id)) {
-      // Nếu ID hợp lệ, tìm theo ID
-      query = { _id: id };
-    } else {
-      // Nếu không phải ObjectId, giả sử đó là slug
-      query = { slug: id };
-    }
-
-    const doc = await model
-      .findOne(query)
-      .populate("user", "username fullName _id image");
-
+    const doc = await model.findById(id);
     if (!doc) {
       res.status(404).json({ message: "Document not found" });
       return;
     }
-
     res.json(doc);
   } catch (error) {
     console.error("Error fetching document:", error);
     res.status(500).json({ message: "Server error" });
+    return;
   }
 };
 

@@ -11,12 +11,13 @@ export const blogSchema = z.object({
   description: z.string().max(1000).optional(),
   collections: z
     .array(
-      z
-        .string()
-        .min(2, { message: "Collection must be at least 2 characters long" })
-        .max(100, { message: "Collection must be less than 50 characters" })
+      z.object({
+        title: z.string().min(1).max(100),
+        value: z.string().min(1).max(100),
+      })
     )
-    .optional(),
+    .optional()
+    .default([]),
   slug: z
     .string()
     .nonempty({ message: "Slug is required" })
@@ -27,6 +28,15 @@ export const blogSchema = z.object({
         "Slug must contain only lowercase letters, numbers, dashes or underscores",
     }),
 });
+
+export const getAllQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+    search: z.string().trim().max(100).optional().default(""),
+    collection: z.string().trim().max(50).optional().default(""),
+  })
+  .strict();
 
 export const updateBlogSchema = blogSchema.partial();
 export type BlogInput = z.infer<typeof blogSchema>;

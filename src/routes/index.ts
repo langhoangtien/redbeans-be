@@ -13,6 +13,7 @@ import settingsRouter from "../modules/settings/settings.route.js";
 import emailRouter from "../modules/email/email.route.js";
 import uploadRouter from "../modules/upload/upload.route.js";
 import geoStatRouter from "../modules/geo-stat/geo-stat.route.js";
+import contactRouter from "../modules/contact/contact.route.js";
 
 router.use("/categories", categoryRouter);
 router.use("/settings", settingsRouter);
@@ -26,4 +27,5 @@ router.use("/reviews", reviewRouter);
 router.use("/blogs", blogRouter);
 router.use("/emails", emailRouter);
 router.use("/geo-stat", geoStatRouter);
+router.use("/contacts", contactRouter);
 export default router;

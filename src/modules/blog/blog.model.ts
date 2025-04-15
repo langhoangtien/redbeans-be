@@ -7,9 +7,26 @@ interface IBlog extends Document {
   user: ObjectId; // ID của người dùng tạo blog
   image?: string;
   slug: string;
-  collections: string[]; // Danh sách ID của các Category
+  collections: {
+    title: string;
+    value: string;
+  }[];
 }
 
+const CollectionSchema = new Schema({
+  title: {
+    type: String,
+    required: true,
+    minLength: 1,
+    maxLength: 100,
+  },
+  value: {
+    type: String,
+    required: true,
+    minLength: 1,
+    maxLength: 100,
+  },
+});
 const blogSchema = new Schema<IBlog>(
   {
     title: {
@@ -42,13 +59,8 @@ const blogSchema = new Schema<IBlog>(
       index: true, // Thêm index cho slug
     },
     collections: {
-      type: [String],
-      validate: {
-        validator: function (v: string[]) {
-          return v.every((str) => str.length >= 2 && str.length <= 100);
-        },
-        message: (props) => `${props.value} is not a valid collection ID!`,
-      },
+      type: [CollectionSchema],
+      default: [],
     },
   },
   { timestamps: true, versionKey: false }

@@ -29,7 +29,28 @@ export const validateSchema = (schema: ZodSchema) => {
           message: "Unknown error occurred",
         });
       }
-      // Không cần gọi next() ở đây vì đã trả về response
+    }
+  };
+};
+
+/**
+ * Tái sử dụng Zod validation cho query string
+ * @param schema Zod schema cần validate
+ */
+export const validateQuery = (schema: ZodSchema<any>) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const parsed = schema.parse(req.query);
+      req.query = parsed; // Ghi đè lại query bằng bản đã được parse & clean
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        res.status(400).json({
+          message: "Params validation failed",
+          errors: error.flatten().fieldErrors,
+        });
+      }
+      res.status(500).json({ message: "Server error" });
     }
   };
 };
@@ -154,4 +175,25 @@ export function calculateTax(countryCode: string, stateCode?: string): number {
   }
   tax = euVAT[countryCode.toUpperCase()] ?? 0;
   return tax / 100;
+}
+
+export function calculateAverageRating(rating: number[]): {
+  averageRating: number;
+  totalRating: number;
+} {
+  if (rating.length !== 5) return { averageRating: 0, totalRating: 0 };
+
+  let totalRating = 0;
+  let totalCount = 0;
+
+  rating.forEach((count, index) => {
+    totalRating += count * (index + 1); // index + 1 vì sao bắt đầu từ 1
+    totalCount += count;
+  });
+
+  const average = totalCount > 0 ? totalRating / totalCount : 0;
+  return {
+    averageRating: Math.round(average * 10) / 10,
+    totalRating: totalCount,
+  };
 }

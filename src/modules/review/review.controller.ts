@@ -53,14 +53,12 @@ const getAll = async (req: Request, res: Response) => {
         { title: { $regex: search, $options: "i" } },
       ];
     }
-    // Sắp xếp
-    console.log("sortBy", sortBy, "sortOrder", sortOrder);
 
     // Chạy song song để tối ưu hiệu suất
     const [docs, totalDocs] = await Promise.all([
       model
         .find(filter)
-        .sort({ [sortBy]: sortOrder })
+        .sort({ [sortBy]: sortOrder, _id: 1 })
         .skip(skip)
         .limit(limit),
       model.countDocuments(filter),

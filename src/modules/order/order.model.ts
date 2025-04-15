@@ -33,10 +33,7 @@ export interface IOrderItem {
   variantId: string; // Tham chiếu trực tiếp đến Variant
   price: number; // Giá của sản phẩm tại thời điểm đặt hàng
   productId: string; // Tham chiếu trực tiếp đến Product
-  attributes?: {
-    name: string;
-    value: string;
-  }[]; // Các thuộc tính của sản phẩm
+  title: string;
 }
 
 // --- Interface cho Order ---
@@ -72,14 +69,7 @@ export interface IShippingDetails {
   postalCode: string;
   country: string;
 }
-const AttributesSchmea = new Schema({
-  name: {
-    type: String,
-  },
-  value: {
-    type: String,
-  },
-});
+
 // --- Schema cho từng Order Item ---
 const orderItemSchema = new Schema({
   name: {
@@ -110,7 +100,9 @@ const orderItemSchema = new Schema({
     type: Number,
     required: true,
   },
-  attributes: [AttributesSchmea],
+  title: {
+    type: String,
+  },
 });
 
 const ShippingDetailsSchema = new Schema({

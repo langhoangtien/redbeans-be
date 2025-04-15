@@ -5,7 +5,11 @@ export const variantZodSchema = z.object({
     .array(
       z.object({
         name: z.string().min(1).max(50),
-        value: z.string().min(1).max(50),
+        title: z.string().min(1).max(50),
+        value: z.string().max(50).optional(),
+        color: z.string().max(10).optional(),
+        image: z.string().max(200).optional(),
+        key: z.string().max(50).optional(),
       })
     )
     .default([]), // ✅ Mặc định là mảng rỗng
@@ -19,6 +23,8 @@ export const variantZodSchema = z.object({
   stock: z.number().int().nonnegative(),
 
   sku: z.string().optional(),
+  title: z.string().optional(),
+  key: z.string().optional(),
 });
 
 // ✅ Áp dụng .refine() sau khi tách schema cơ bản

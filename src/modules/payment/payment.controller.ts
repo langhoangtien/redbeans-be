@@ -141,7 +141,7 @@ const createOrder = async (req: Request, res: Response): Promise<any> => {
 
       const data = {
         quantity: item.quantity,
-        attributes: product.attributes,
+        title: product.title,
         variantId: item.id,
         productId: product.productId._id.toString(),
         price: product.price,
@@ -296,9 +296,7 @@ const sendOrderConfirmationEmail = async (order: IOrder) => {
       (item) => `
       <tr>
         <td><p>${item.name}</p>
-           <p class="product-attr">${item.attributes
-             .map((attr) => `<span>${attr.name}: ${attr.value}</span>`)
-             .join(", ")}</p>
+           <p class="product-attr">${item.title}</p>
         </p>
         </td>
         <td><p>${item.quantity}</p>
@@ -366,7 +364,7 @@ const sendOrderConfirmationEmail = async (order: IOrder) => {
             padding: 10px 20px;
             margin-top: 20px;
             background: #007bff;
-            color: #fff;
+            color: #fff !important;
             text-decoration: none;
             border-radius: 5px;
         }
