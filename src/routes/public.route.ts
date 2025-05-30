@@ -14,12 +14,19 @@ import { geoStatSchema } from "../modules/geo-stat/geo-stat.validate.js";
 import contactController from "../modules/contact/contact.controller.js";
 import { contactSchema } from "../modules/contact/contact.validate.js";
 import { getAllQuerySchema } from "../modules/blog/blog.validate.js";
+import { trackingSchema } from "../modules/tracking/tracking.validate.js";
+import trackingController from "../modules/tracking/tracking.controller.js";
 
 const router = express.Router();
 router.get("/posts", postController.getAll);
 router.get("/blogs", validateQuery(getAllQuerySchema), blogController.getAll);
 router.get("/blogs/:id", blogController.findOne);
 router.get("/settings/client", settingsController.getSettingsClient);
+router.post(
+  "/tracking/:id",
+  validateSchema(trackingSchema),
+  trackingController.findOne
+);
 router.post(
   "/client/track-visit",
   validateSchema(geoStatSchema),
@@ -40,6 +47,7 @@ router.post(
   validateSchema(reviewClientSchema),
   reviewController.createClientReview
 );
+
 router.get("/reviews", reviewController.getAll);
 router.get("/products", productController.getAll);
 router.get("/products/:id", productController.findOne);

@@ -412,7 +412,7 @@ const sendOrderConfirmationEmail = async (order: IOrder) => {
 
           <p>You can track your order status by clicking the button below:</p>
           <a class="button" href="${
-            settings.companWebsite
+            settings.companyWebsite
           }/track-order">Track My Order</a>
 
           <p>If you have any questions, feel free to contact us at <a href="mailto:${

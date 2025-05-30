@@ -8,6 +8,7 @@ import {
   authLimiter,
   clientLimiter,
   paymentLimiter,
+  trackLimiter,
 } from "./middleware/rate-limit.js";
 
 const app = express();
@@ -59,6 +60,7 @@ app.use(
 app.use("/auth", authLimiter);
 app.use("/payment", paymentLimiter);
 app.use("/client", clientLimiter);
+app.use("/tracking", trackLimiter);
 
 app.use(publicRouter);
 app.use(authenticateJWT);

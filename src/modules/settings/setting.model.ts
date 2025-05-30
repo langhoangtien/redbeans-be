@@ -10,12 +10,17 @@ export interface ISettings extends Document {
   smtpPass?: string;
   smtpPort?: string;
   smtpHost?: string;
-  companWebsite?: string;
+  companyWebsite?: string;
   paypalClientId?: string;
   paypalSecret?: string;
   paypalMode?: "Sandbox" | "Production";
   paypalApi?: string;
   facebookPixelId?: string;
+  tokens?: {
+    domain: string;
+    accessToken: string;
+    version?: string;
+  }[];
 }
 
 // Tạo Mongoose Schema dựa trên Zod Schema
@@ -34,7 +39,7 @@ const SettingsSchema = new Schema<ISettings>(
     smtpPort: { type: String, default: "465" },
     smtpHost: { type: String, default: "smtp.zoho.com" },
     facebookPixelId: { type: String, default: "" },
-    companWebsite: {
+    companyWebsite: {
       type: String,
       default: "https://quitmood.net",
       validate: /^(https?:\/\/)?([\w\-]+\.)+[\w-]+(\/[\w\-./?%&=]*)?$/,
@@ -47,6 +52,13 @@ const SettingsSchema = new Schema<ISettings>(
       default: "Sandbox",
     },
     paypalApi: { type: String, default: "https://api.sandbox.paypal.com" },
+    tokens: [
+      {
+        domain: { type: String, required: true },
+        accessToken: { type: String, required: true },
+        version: { type: String, default: "2025-01" }, // Thêm trường version với giá trị mặc định
+      },
+    ],
   },
   { timestamps: true }
 );
