@@ -28,7 +28,7 @@ const allowedOrigins = [
   "https://quitmood.net",
   "https://optilifecompany.com",
   "https://natureaeon.com",
-  "https://se.naturaeon.com",
+  "http://127.0.0.1:9292",
   "https://naturaeon.com",
   "http://localhost:5173",
   "https://quitmood.us",
