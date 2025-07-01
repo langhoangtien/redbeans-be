@@ -31,6 +31,7 @@ const allowedOrigins = [
   "https://se.naturaeon.com",
   "https://naturaeon.com",
   "http://localhost:5173",
+  "https://quitmood.us",
 ];
 
 app.use(
