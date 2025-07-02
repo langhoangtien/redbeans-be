@@ -51,6 +51,7 @@ const getAll = async (req: Request, res: Response) => {
       filter.$or = [
         { customer: { $regex: search, $options: "i" } },
         { title: { $regex: search, $options: "i" } },
+        { productId: { $regex: search, $options: "i" } },
       ];
     }
 
