@@ -32,6 +32,7 @@ const allowedOrigins = [
   "https://naturaeon.com",
   "http://localhost:5173",
   "https://quitmood.us",
+  "https://bunifix.co",
 ];
 
 app.use(
