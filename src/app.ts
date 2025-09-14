@@ -33,6 +33,8 @@ const allowedOrigins = [
   "http://localhost:5173",
   "https://quitmood.us",
   "https://bunifix.co",
+  "https://www.bunionfix.co",
+  "https://bunionfix.co",
 ];
 
 app.use(
