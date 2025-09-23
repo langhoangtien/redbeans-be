@@ -27,7 +27,6 @@ const allowedOrigins = [
   "https://langtranhdongho.vn",
   "https://quitmood.net",
   "https://optilifecompany.com",
-  "https://natureaeon.com",
   "http://127.0.0.1:9292",
   "https://naturaeon.com",
   "http://localhost:5173",
@@ -35,6 +34,8 @@ const allowedOrigins = [
   "https://bunifix.co",
   "https://www.bunionfix.co",
   "https://bunionfix.co",
+  "https://www.nordicmedix.com",
+  "https://nordicmedix.com",
 ];
 
 app.use(
