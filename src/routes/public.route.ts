@@ -49,6 +49,7 @@ router.post(
 );
 
 router.get("/reviews", reviewController.getAll);
+router.get("/reviews/:productId", reviewController.getProductRating);
 router.get("/products", productController.getAll);
 router.get("/products/:id", productController.findOne);
 router.post("/auth/login", authController.login);

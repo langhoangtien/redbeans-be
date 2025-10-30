@@ -1,11 +1,21 @@
 import mongoose, { mongo } from "mongoose";
 import { Request, Response } from "express";
+import {
+  applyAddStats,
+  applyUpdateStats,
+  applyRemoveStats,
+  getVerified,
+  bumpStatsLegacy,
+  Delta,
+} from "./review-helper.js";
+import ProductRating from "../product/product-rating.model.js";
 import model from "./review.model.js"; // Adjust the import path as necessary
 
 const create = async (req: Request, res: Response) => {
   try {
     const newModel = new model(req.body);
     const newDoc = await newModel.save();
+    await applyAddStats(newDoc);
     res.status(201).json(newDoc);
   } catch (error: any) {
     if (error instanceof mongo.MongoServerError && error.code === 11000) {
@@ -90,6 +100,12 @@ const update = async (req: Request, res: Response) => {
   const updateData = { ...req.body, updatedAt: new Date() };
 
   try {
+    const oldDoc = await model.findById(id);
+    if (!oldDoc) {
+      res.status(404).json({ message: "Document not found" });
+      return;
+    }
+
     const updatedDoc = await model.findByIdAndUpdate(id, updateData, {
       new: true,
     });
@@ -99,6 +115,7 @@ const update = async (req: Request, res: Response) => {
       return;
     }
 
+    await applyUpdateStats(oldDoc, updatedDoc);
     res.json(updatedDoc);
   } catch (error) {
     console.error("Error updating document:", error);
@@ -121,6 +138,7 @@ const remove = async (req: Request, res: Response) => {
       return;
     }
 
+    await applyRemoveStats(deletedDoc);
     res.json({ message: "Document deleted successfully" });
   } catch (error) {
     console.error("Error deleting document:", error);
@@ -151,7 +169,6 @@ const findOne = async (req: Request, res: Response) => {
 
 const deleteMany = async (req: Request, res: Response) => {
   const { ids } = req.body;
-
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     res.status(400).json({ message: "Invalid IDs format" });
     return;
@@ -161,12 +178,36 @@ const deleteMany = async (req: Request, res: Response) => {
     return;
   }
   try {
-    const deletedDocs = await model.deleteMany({ _id: { $in: ids } });
+    // lấy trước để tính delta
+    const docs = await model.find({ _id: { $in: ids } }).lean();
 
-    if (deletedDocs.deletedCount === 0) {
+    const deleted = await model.deleteMany({ _id: { $in: ids } });
+    if (deleted.deletedCount === 0) {
       res.status(404).json({ message: "Document not found" });
       return;
     }
+
+    // >>> gộp delta theo productId để giảm số lần update
+    const byProduct: Record<string, any> = {};
+    for (const d of docs) {
+      const key = d.productId;
+      byProduct[key] ??= {
+        reviewCount: 0,
+        totalRating: 0,
+        verifiedDelta: 0,
+        starDelta: {} as any,
+      };
+      byProduct[key].reviewCount -= 1;
+      byProduct[key].totalRating -= d.rating;
+      if (getVerified(d)) byProduct[key].verifiedDelta -= 1;
+      byProduct[key].starDelta[d.rating] =
+        (byProduct[key].starDelta[d.rating] || 0) - 1;
+    }
+    await Promise.all(
+      Object.entries(byProduct).map(([pid, delta]) =>
+        bumpStatsLegacy(pid, delta as Delta)
+      )
+    );
 
     res.json({ message: "Documents deleted successfully" });
   } catch (error) {
@@ -184,6 +225,29 @@ const bulkCreate = async (req: Request, res: Response) => {
   }
   try {
     const createdDocs = await model.insertMany(data);
+
+    // >>> gộp delta theo productId để cộng 1 lần
+    const byProduct: Record<string, any> = {};
+    for (const d of createdDocs) {
+      const key = d.productId;
+      byProduct[key] ??= {
+        reviewCount: 0,
+        totalRating: 0,
+        verifiedDelta: 0,
+        starDelta: {} as any,
+      };
+      byProduct[key].reviewCount += 1;
+      byProduct[key].totalRating += d.rating;
+      if (getVerified(d)) byProduct[key].verifiedDelta += 1;
+      byProduct[key].starDelta[d.rating] =
+        (byProduct[key].starDelta[d.rating] || 0) + 1;
+    }
+    await Promise.all(
+      Object.entries(byProduct).map(([pid, delta]) =>
+        bumpStatsLegacy(pid, delta as Delta)
+      )
+    );
+
     res.status(201).json(createdDocs);
   } catch (error) {
     console.error("Error importing documents:", error);
@@ -210,6 +274,7 @@ const createClientReview = async (req: Request, res: Response) => {
 
     const newModel = new model(data);
     const newDoc = await newModel.save();
+    await applyAddStats(newDoc);
     res.status(201).json(newDoc);
   } catch (error: any) {
     if (error instanceof mongo.MongoServerError && error.code === 11000) {
@@ -226,6 +291,34 @@ const createClientReview = async (req: Request, res: Response) => {
   }
 };
 
+const getProductRating = async (req: Request, res: Response) => {
+  try {
+    const { productId } = req.params;
+    if (!productId) {
+      res.status(400).json({ message: "productId is required" });
+      return;
+    }
+
+    const stats = await ProductRating.findOne({ productId }).lean();
+
+    if (!stats) {
+      res.status(404).json({
+        message: "Not Found",
+      });
+      return;
+    }
+
+    res.json({
+      productId,
+      avgRating: stats.avgRating,
+      reviewCount: stats.reviewCount,
+      starCounts: stats.starCounts,
+    });
+  } catch (error) {
+    console.error("Error fetching product rating:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 export default {
   create,
   getAll,
@@ -235,4 +328,5 @@ export default {
   deleteMany,
   bulkCreate,
   createClientReview,
+  getProductRating,
 };
