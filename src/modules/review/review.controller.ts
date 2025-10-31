@@ -55,6 +55,8 @@ const getAll = async (req: Request, res: Response) => {
       filter.$or = [
         { images: { $exists: true, $not: { $size: 0 } } },
         { videos: { $exists: true, $not: { $size: 0 } } },
+        { videoUploads: { $exists: true, $not: { $size: 0 } } },
+        { imageUploads: { $exists: true, $not: { $size: 0 } } },
       ];
 
     if (search) {
