@@ -18,6 +18,7 @@ const reviewSchema = new Schema(
     country: { type: String, default: null },
     liked: { type: Number, default: 0 },
     purchaseVerified: { type: Boolean, default: false },
+    hasMedia: { type: Boolean, default: false, index: true }, // NEW
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   },

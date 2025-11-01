@@ -9,6 +9,7 @@ import {
 } from "./review.validate.js";
 
 reviewRouter.get("/", controller.getAll);
+reviewRouter.get("/migrate-hasmedia", controller.migrateHasMedia);
 reviewRouter.post("/", validateSchema(reviewSchema), controller.create);
 reviewRouter.post(
   "/bulk-create",
