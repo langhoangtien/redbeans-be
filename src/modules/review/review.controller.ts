@@ -61,7 +61,7 @@ const getAll = async (req: Request, res: Response) => {
     const rating = parseInt(req.query.rating as string);
     const purchaseVerified = req.query.purchaseVerified === "true";
     const hasMedia = req.query.hasMedia === "true";
-    const sortBy = (req.query.sortBy as string) || "createdAt";
+    const sortBy = (req.query.sortBy as string) || ""; // không mặc định ở đây nữa
     const sortOrder = req.query.sortOrder === "asc" ? 1 : -1;
 
     const skip = (page - 1) * limit;
@@ -72,7 +72,6 @@ const getAll = async (req: Request, res: Response) => {
     if (!isNaN(rating)) filter.rating = rating;
     if (req.query.purchaseVerified !== undefined)
       filter.purchaseVerified = purchaseVerified;
-
     if (hasMedia) and.push({ hasMedia: true });
 
     if (search) {
@@ -87,12 +86,27 @@ const getAll = async (req: Request, res: Response) => {
 
     if (and.length) filter.$and = and;
 
+    // ----------------------------
+    // 🔹 Logic sắp xếp linh hoạt
+    // ----------------------------
+    let sortConfig: any = {};
+
+    if (!sortBy) {
+      // Không truyền sortBy → mặc định ưu tiên media rồi ngày tạo
+      sortConfig = { hasMedia: -1, createdAt: -1, _id: 1 };
+    } else {
+      // Có sortBy (vd: rating) → trong nhóm cùng rating:
+      //   1) ưu tiên media
+      //   2) mới trước
+      //   3) ổn định bằng _id
+      sortConfig = { [sortBy]: sortOrder, hasMedia: -1, createdAt: -1, _id: 1 };
+    }
+
+    // Debug:
+    console.log("SORT CONFIG:", sortConfig);
+
     const [docs, totalDocs] = await Promise.all([
-      model
-        .find(filter)
-        .sort({ hasMedia: -1, [sortBy]: sortOrder, _id: 1 }) // ưu tiên review có media
-        .skip(skip)
-        .limit(limit),
+      model.find(filter).sort(sortConfig).skip(skip).limit(limit),
       model.countDocuments(filter),
     ]);
 
