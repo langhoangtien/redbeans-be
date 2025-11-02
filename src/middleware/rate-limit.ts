@@ -22,10 +22,22 @@ const clientLimiter = rateLimit({
   message: "Too many requests from this IP, please try again later.",
 });
 
+const clientReviewLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 60 phút
+  max: 2,
+  message: "Too many requests from this IP, please try again later.",
+});
+
 const trackLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 15 phút
   max: 5,
   message: "Too many requests from this IP, please try again later.",
 });
 
-export { authLimiter, paymentLimiter, clientLimiter, trackLimiter };
+export {
+  authLimiter,
+  paymentLimiter,
+  clientLimiter,
+  trackLimiter,
+  clientReviewLimiter,
+};

@@ -1,8 +1,10 @@
 import mongoose, { mongo } from "mongoose";
 import { Request, Response } from "express";
-
+import fs from "fs/promises";
 import ProductRating from "../product/product-rating.model.js";
 import model from "./review.model.js"; // Adjust the import path as necessary
+import path from "path";
+import sharp from "sharp";
 
 /** ================================
  * Helpers
@@ -102,9 +104,6 @@ const getAll = async (req: Request, res: Response) => {
       sortConfig = { [sortBy]: sortOrder, hasMedia: -1, createdAt: -1, _id: 1 };
     }
 
-    // Debug:
-    console.log("SORT CONFIG:", sortConfig);
-
     const [docs, totalDocs] = await Promise.all([
       model.find(filter).sort(sortConfig).skip(skip).limit(limit),
       model.countDocuments(filter),
@@ -165,28 +164,49 @@ const update = async (req: Request, res: Response) => {
 /** ================================
  * DELETE ONE
  * ================================ */
-const remove = async (req: Request, res: Response) => {
+export const remove = async (req: Request, res: Response) => {
   const { id } = req.params;
+
   if (!mongoose.Types.ObjectId.isValid(id)) {
     res.status(400).json({ message: "Invalid ID format" });
     return;
   }
-  try {
-    const deletedDoc = await model.findByIdAndDelete(id);
 
+  try {
+    // 1️⃣ Lấy review trước khi xoá (để biết file nào cần xoá)
+    const deletedDoc = await model.findByIdAndDelete(id);
     if (!deletedDoc) {
-      res.status(404).json({ message: "Document not found" });
+      res.status(404).json({ message: "Review not found" });
       return;
     }
 
+    // 2️⃣ Lấy danh sách file cần xoá
+    const fileList = deletedDoc.imageIds?.length > 0 ? deletedDoc.imageIds : [];
+
+    // 3️⃣ Xóa file ảnh (không dùng existsSync, chỉ bắt lỗi ENOENT)
+    await Promise.all(
+      fileList.map(async (filename) => {
+        const filePath = path.join(uploadsDir, filename);
+        try {
+          await fs.unlink(filePath);
+        } catch (err: any) {
+          if (err.code !== "ENOENT")
+            console.error(`Delete failed: ${filename}`, err);
+        }
+      })
+    );
+
+    // 4️⃣ Cập nhật thống kê sản phẩm
     await applyRemoveStats(deletedDoc);
-    res.json({ message: "Document deleted successfully" });
+
+    res.json({ message: "Review deleted successfully" });
+    return;
   } catch (error) {
-    console.error("Error deleting document:", error);
+    console.error("Error deleting review:", error);
     res.status(500).json({ message: "Server error" });
+    return;
   }
 };
-
 /** ================================
  * FIND ONE
  * ================================ */
@@ -212,59 +232,82 @@ const findOne = async (req: Request, res: Response) => {
 /** ================================
  * DELETE MANY
  * ================================ */
-const deleteMany = async (req: Request, res: Response) => {
+export const deleteMany = async (req: Request, res: Response) => {
   const { ids } = req.body;
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     res.status(400).json({ message: "Invalid IDs format" });
     return;
   }
+
   if (!ids.every((id: any) => mongoose.Types.ObjectId.isValid(id))) {
     res.status(400).json({ message: "One or more IDs are invalid" });
     return;
   }
+
   try {
-    // lấy trước để tính delta
+    // 1️⃣ Lấy trước danh sách review để biết file nào và productId nào cần update
     const docs = await model.find({ _id: { $in: ids } }).lean();
 
+    // 2️⃣ Xóa file ảnh trên ổ đĩa (song song)
+    await Promise.all(
+      docs.flatMap((doc) => {
+        const fileList = doc.imageIds?.length > 0 ? doc.imageIds : [];
+        return fileList.map(async (filename: string) => {
+          const filePath = path.join(uploadsDir, filename);
+          try {
+            await fs.unlink(filePath);
+          } catch (err: any) {
+            if (err.code !== "ENOENT")
+              console.error(`Delete failed: ${filename}`, err);
+          }
+        });
+      })
+    );
+
+    // 3️⃣ Xóa dữ liệu trong MongoDB
     const deleted = await model.deleteMany({ _id: { $in: ids } });
     if (deleted.deletedCount === 0) {
-      res.status(404).json({ message: "Document not found" });
+      res.status(404).json({ message: "Documents not found" });
       return;
     }
 
-    // gộp delta theo productId để giảm số lần update
+    // 4️⃣ Gom thống kê cập nhật cho từng productId
     const byProduct: Record<string, any> = {};
     for (const d of docs) {
-      const key = d.productId;
-      byProduct[key] ??= {
+      const pid = d.productId;
+      byProduct[pid] ??= {
         reviewCount: 0,
         totalRating: 0,
         verifiedDelta: 0,
-        starDelta: {} as any,
+        starDelta: {},
         mediaDelta: { photos: 0, videos: 0, media: 0, reviewsWithMedia: 0 },
       };
-      byProduct[key].reviewCount -= 1;
-      byProduct[key].totalRating -= d.rating;
-      if (getVerified(d)) byProduct[key].verifiedDelta -= 1;
-      byProduct[key].starDelta[d.rating] =
-        (byProduct[key].starDelta[d.rating] || 0) - 1;
+
+      byProduct[pid].reviewCount -= 1;
+      byProduct[pid].totalRating -= d.rating;
+      if (getVerified(d)) byProduct[pid].verifiedDelta -= 1;
+      byProduct[pid].starDelta[d.rating] =
+        (byProduct[pid].starDelta[d.rating] || 0) - 1;
 
       const m = countMedia(d);
-      byProduct[key].mediaDelta.photos -= m.photos;
-      byProduct[key].mediaDelta.videos -= m.videos;
-      byProduct[key].mediaDelta.media -= m.media;
-      byProduct[key].mediaDelta.reviewsWithMedia -= m.rwMedia;
+      byProduct[pid].mediaDelta.photos -= m.photos;
+      byProduct[pid].mediaDelta.videos -= m.videos;
+      byProduct[pid].mediaDelta.media -= m.media;
+      byProduct[pid].mediaDelta.reviewsWithMedia -= m.rwMedia;
     }
+
     await Promise.all(
       Object.entries(byProduct).map(([pid, delta]) =>
-        bumpStatsLegacy(pid, delta as Delta)
+        bumpStatsLegacy(pid, delta as any)
       )
     );
 
-    res.json({ message: "Documents deleted successfully" });
+    res.json({ message: "Reviews deleted successfully" });
+    return;
   } catch (error) {
-    console.error("Error deleting documents:", error);
+    console.error("Error deleting reviews:", error);
     res.status(500).json({ message: "Server error" });
+    return;
   }
 };
 
@@ -323,36 +366,73 @@ const bulkCreate = async (req: Request, res: Response) => {
 /** ================================
  * CREATE CLIENT REVIEW (public)
  * ================================ */
-const createClientReview = async (req: Request, res: Response) => {
+
+export async function saveBase64Images(base64Array = [], uploadsDir: string) {
+  const imageIds: string[] = [];
+
+  for (const base64 of base64Array.slice(0, 5)) {
+    try {
+      const match = base64.match(/^data:image\/(\w+);base64,([\s\S]+)$/);
+      if (!match) continue;
+      const buffer = Buffer.from(match[2], "base64");
+      const filename = `${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}.webp`;
+      const filePath = path.join(uploadsDir, filename);
+
+      await sharp(buffer)
+        .resize({
+          width: 1200,
+          height: 1200,
+          fit: "inside",
+          withoutEnlargement: true,
+        })
+        .toFormat("webp", { quality: 85 })
+        .toFile(filePath);
+
+      imageIds.push(filename);
+    } catch (err) {
+      console.error("Error saving image:", err);
+    }
+  }
+
+  return imageIds; // chỉ trả về danh sách id
+}
+
+const uploadsDir = path.join(process.cwd(), "uploads");
+
+const createClientReview = async (req, res) => {
   try {
-    const { productId, title, rating, customer, email, body } = req.body;
-    const createdAt = new Date();
-    const updatedAt = new Date();
-    const data = {
+    const {
       productId,
       title,
       rating,
       customer,
-      createdAt,
-      updatedAt,
-      body,
       email,
-      hasMedia: computeHasMedia(req.body),
-    };
+      body,
+      imageUploads = [],
+    } = req.body;
 
-    const newModel = new model(data);
-    const newDoc = await newModel.save();
-    await applyAddStats(newDoc);
-    res.status(201).json(newDoc);
-  } catch (error: any) {
-    if (error instanceof mongo.MongoServerError && error.code === 11000) {
-      const duplicateKey = Object.keys(error.keyValue)[0];
-      res.status(400).json({
-        message: `${duplicateKey} already exists: ${error.keyValue[duplicateKey]}`,
-      });
-      return;
-    }
-    console.error("Error creating document:", error);
+    const ids = await saveBase64Images(imageUploads, uploadsDir);
+
+    const doc = await model.create({
+      productId,
+      title,
+      rating,
+      customer,
+      email,
+      body,
+      imageUploads: ids,
+      imageIds: ids, // chỉ lưu ID
+      hasMedia: ids.length > 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    await applyAddStats(doc);
+    res.status(201).json(doc);
+  } catch (err) {
+    console.error("Create review failed:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -593,6 +673,26 @@ const migrateHasMedia = async (_req: Request, res: Response) => {
   }
 };
 
+// PATCH /reviews/:id/helpful
+const markHelpful = async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid ID format" });
+  }
+  try {
+    const doc = await model.findByIdAndUpdate(
+      id,
+      { $inc: { liked: 1 } },
+      { new: true }
+    );
+    if (!doc) return res.status(404).json({ message: "Not found" });
+    res.json({ liked: doc.liked });
+  } catch (error) {
+    console.error("Error marking helpful:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 /** ================================
  * EXPORT
  * ================================ */
@@ -607,4 +707,5 @@ export default {
   createClientReview,
   getProductRating,
   migrateHasMedia,
+  markHelpful,
 };

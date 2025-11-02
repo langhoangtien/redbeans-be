@@ -47,7 +47,7 @@ router.post(
   validateSchema(reviewClientSchema),
   reviewController.createClientReview
 );
-
+router.patch("client/helpful/:id", reviewController.markHelpful);
 router.get("/reviews", reviewController.getAll);
 router.get("/rating/:productId", reviewController.getProductRating);
 router.get("/products", productController.getAll);

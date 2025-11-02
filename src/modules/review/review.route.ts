@@ -21,6 +21,7 @@ reviewRouter.patch(
   validateSchema(updateReviewSchema),
   controller.update
 );
+
 reviewRouter.delete("/delete-many", controller.deleteMany);
 reviewRouter.delete("/:id", controller.remove);
 reviewRouter.get("/:id", controller.findOne);

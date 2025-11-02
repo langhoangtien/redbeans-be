@@ -9,11 +9,12 @@ import {
   clientLimiter,
   paymentLimiter,
   trackLimiter,
+  clientReviewLimiter,
 } from "./middleware/rate-limit.js";
 
 const app = express();
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+app.use(express.json({ limit: "20mb" }));
+app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 app.use((req, res, next) => {
   const fullUrl = req.originalUrl;
   if (fullUrl.length > 1000) {
@@ -51,7 +52,7 @@ app.use(
   })
 );
 
-const uploadsPath = "uploads"; // đường dẫn đến thư mục uploads
+export const uploadsPath = "uploads"; // đường dẫn đến thư mục uploads
 
 app.use(
   "/static/",
@@ -66,6 +67,7 @@ app.use(
 app.use("/auth", authLimiter);
 app.use("/payment", paymentLimiter);
 app.use("/client", clientLimiter);
+app.use("/client/review", clientReviewLimiter);
 app.use("/tracking", trackLimiter);
 
 app.use(publicRouter);

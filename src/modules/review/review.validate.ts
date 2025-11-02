@@ -32,5 +32,6 @@ export const reviewClientSchema = z
     email: z.string().email().max(255),
     body: z.string().min(1).max(1000),
     rating: z.number().int().min(1).max(5),
+    imageUploads: z.array(z.string()).max(5).optional(),
   })
   .strict();

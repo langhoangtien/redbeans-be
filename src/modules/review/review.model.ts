@@ -19,6 +19,7 @@ const reviewSchema = new Schema(
     liked: { type: Number, default: 0 },
     purchaseVerified: { type: Boolean, default: false },
     hasMedia: { type: Boolean, default: false, index: true }, // NEW
+    imageIds: { type: [String], default: [] },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   },
