@@ -4,6 +4,7 @@ import express from "express";
 import publicRouter from "./routes/public.route.js";
 import cors from "cors";
 import { errorConverter, errorHandler } from "./middleware/error.js";
+
 import {
   authLimiter,
   clientLimiter,
@@ -15,6 +16,7 @@ import {
 const app = express();
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
+
 app.use((req, res, next) => {
   const fullUrl = req.originalUrl;
   if (fullUrl.length > 1000) {
@@ -55,12 +57,25 @@ app.use(
 export const uploadsPath = "uploads"; // đường dẫn đến thư mục uploads
 
 app.use(
-  "/static/",
+  "/static",
   express.static(uploadsPath, {
+    etag: true,
+    lastModified: true,
     maxAge: "1y",
     immutable: true,
     index: false,
     fallthrough: false,
+    setHeaders: (res, path) => {
+      if (path.endsWith(".avif")) res.setHeader("Content-Type", "image/avif");
+      else if (path.endsWith(".webp"))
+        res.setHeader("Content-Type", "image/webp");
+      else if (path.endsWith(".jpg") || path.endsWith(".jpeg"))
+        res.setHeader("Content-Type", "image/jpeg");
+      else if (path.endsWith(".png"))
+        res.setHeader("Content-Type", "image/png");
+
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    },
   })
 );
 
