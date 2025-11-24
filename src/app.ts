@@ -39,6 +39,7 @@ const allowedOrigins = [
   "https://bunionfix.co",
   "https://www.nordicmedix.com",
   "https://nordicmedix.com",
+  "https://https://optilifecompany.co",
 ];
 
 app.use(
