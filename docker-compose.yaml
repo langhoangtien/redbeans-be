@@ -7,18 +7,20 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${DATABASE_PASSWORD}
     volumes:
       - mongo-data:/data/db
-    ports:
-      - "${DATABASE_PORT}:27017"
 
   redis:
     image: redis:latest
     restart: always
-    ports:
-      - "${REDIS_PORT}:6379"
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--requirepass",
+        "${REDIS_PASSWORD}",
+      ]
     volumes:
       - redis_data:/data
-    environment:
-      REDIS_ARGS: "--requirepass ${REDIS_PASSWORD}"
 
   api:
     build:
@@ -32,8 +34,10 @@ services:
     environment:
       DATABASE_USERNAME: ${DATABASE_USERNAME}
       DATABASE_PASSWORD: ${DATABASE_PASSWORD}
-      DATABASE_PORT: ${DATABASE_PORT}
-      MONGO_URI: mongodb://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@mongo:27017/mydatabase
+      MONGO_URI: mongodb://${DATABASE_USERNAME}:${DATABASE_PASSWORD}@mongo:27017/mydatabase?authSource=admin
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION}
     volumes:
